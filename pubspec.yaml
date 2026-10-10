@@ -15,7 +15,6 @@ dependencies:
   google_mlkit_text_recognition: ^0.13.0
   camera: ^0.11.0+2
   image_picker: ^1.1.2
-  image: ^4.3.0
 
   # Local SQLite Storage
   sqflite: ^2.4.1
