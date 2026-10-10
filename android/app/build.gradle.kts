@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.cadence.cadence"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.2.13676358"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -26,12 +26,6 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
 }
