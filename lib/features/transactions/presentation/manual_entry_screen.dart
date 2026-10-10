@@ -211,21 +211,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     IconData selectedIcon = Icons.stars_rounded;
     Color selectedColor = const Color(0xFFF59E0B);
 
-    final availableIcons = [
-      Icons.stars_rounded,
-      Icons.local_cafe_rounded,
-      Icons.local_gas_station_rounded,
-      Icons.home_outlined,
-      Icons.fitness_center_rounded,
-      Icons.pets_rounded,
-      Icons.flight_takeoff_rounded,
-      Icons.medical_services_outlined,
-      Icons.school_outlined,
-      Icons.shopping_bag_outlined,
-      Icons.build_rounded,
-      Icons.savings_outlined,
-      Icons.card_giftcard_rounded,
-    ];
+    const availableIcons = CategoryItemData.selectableIcons;
 
     final availableColors = [
       const Color(0xFFF59E0B),

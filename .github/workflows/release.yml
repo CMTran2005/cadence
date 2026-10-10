@@ -42,7 +42,7 @@ jobs:
         run: flutter test
 
       - name: Build Split-per-ABI Release APKs
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --no-tree-shake-icons
 
       - name: Archive Split APKs
         run: |
@@ -53,7 +53,7 @@ jobs:
           fi
 
       - name: Build Universal Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Archive Universal APK
         run: |

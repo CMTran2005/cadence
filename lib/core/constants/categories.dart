@@ -171,11 +171,46 @@ class CategoryItemData {
     };
   }
 
+  static const List<IconData> selectableIcons = [
+    Icons.stars_rounded,
+    Icons.local_cafe_rounded,
+    Icons.local_gas_station_rounded,
+    Icons.home_outlined,
+    Icons.fitness_center_rounded,
+    Icons.pets_rounded,
+    Icons.flight_takeoff_rounded,
+    Icons.medical_services_outlined,
+    Icons.school_outlined,
+    Icons.shopping_bag_outlined,
+    Icons.build_rounded,
+    Icons.savings_outlined,
+    Icons.card_giftcard_rounded,
+    Icons.fastfood_rounded,
+    Icons.directions_bus_rounded,
+    Icons.movie_outlined,
+    Icons.bolt_rounded,
+    Icons.health_and_safety_outlined,
+    Icons.payments_outlined,
+    Icons.work_outline_rounded,
+    Icons.trending_up_rounded,
+    Icons.laptop_chromebook_rounded,
+    Icons.redeem_rounded,
+    Icons.grid_view_rounded,
+  ];
+
+  static IconData iconFromCodePoint(int? codePoint) {
+    if (codePoint == null) return Icons.grid_view_rounded;
+    for (final icon in selectableIcons) {
+      if (icon.codePoint == codePoint) return icon;
+    }
+    return Icons.grid_view_rounded;
+  }
+
   factory CategoryItemData.fromMap(Map<String, dynamic> map) {
     return CategoryItemData(
       id: map['id'] as String,
       name: map['name'] as String,
-      icon: IconData(map['iconCode'] as int? ?? Icons.grid_view_rounded.codePoint, fontFamily: 'MaterialIcons'),
+      icon: iconFromCodePoint(map['iconCode'] as int?),
       color: Color(map['colorValue'] as int? ?? 0xFF94A3B8),
       type: (map['type'] == 'INCOME') ? TransactionType.income : TransactionType.expense,
       isCustom: true,
