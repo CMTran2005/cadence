@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/categories.dart';
 import '../../../core/database/database_helper.dart';
-import '../../../core/utils/currency_formatter.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/app_data_notifier.dart';
+import '../../../core/services/settings_service.dart';
 import '../../transactions/models/transaction_item.dart';
 import '../models/subscription_item.dart';
 import 'widgets/subscription_card.dart';
@@ -24,10 +26,22 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    AppDataNotifier.instance.addListener(_loadData);
+    SettingsService.instance.addListener(_onSettingsChanged);
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppDataNotifier.instance.removeListener(_loadData);
+    SettingsService.instance.removeListener(_onSettingsChanged);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
     final subs = await DatabaseHelper.instance.getAllSubscriptions();
     final monthlyTotal = await DatabaseHelper.instance.getMonthlySubscriptionTotal();
 
@@ -41,7 +55,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Future<void> _markPaid(SubscriptionItem sub) async {
-    // 1. Advance next billing date
     final nextDate = sub.billingCycle == 'YEARLY'
         ? DateTime(sub.nextBillingDate.year + 1, sub.nextBillingDate.month, sub.nextBillingDate.day)
         : DateTime(sub.nextBillingDate.year, sub.nextBillingDate.month + 1, sub.nextBillingDate.day);
@@ -50,52 +63,56 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       sub.copyWith(nextBillingDate: nextDate),
     );
 
-    // 2. Insert expense transaction record
     final tx = TransactionItem(
-      title: 'Gia hạn: ${sub.name}',
+      title: sub.name,
       amount: sub.amount,
       type: TransactionType.expense,
       category: sub.category,
       transactionDate: DateTime.now(),
       source: 'MANUAL',
-      notes: 'Thanh toán định kỳ ${sub.billingCycle.toLowerCase()}',
+      notes: sub.billingCycle.toLowerCase(),
     );
     await DatabaseHelper.instance.insertTransaction(tx);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Đã ghi nhận thanh toán & chuyển kỳ tới sang ${nextDate.day}/${nextDate.month}'),
+          content: Text(tr('paid_success', {'date': '${nextDate.day}/${nextDate.month}'})),
           backgroundColor: AppColors.income,
         ),
       );
     }
-    _loadData();
   }
 
   Future<void> _toggleActive(SubscriptionItem sub, bool active) async {
     await DatabaseHelper.instance.toggleSubscriptionActive(sub.id!, active);
-    _loadData();
   }
 
   Future<void> _deleteSub(SubscriptionItem sub) async {
     await DatabaseHelper.instance.deleteSubscription(sub.id!);
-    _loadData();
+  }
+
+  Future<void> _editSub(SubscriptionItem sub) async {
+    await AddSubscriptionSheet.show(context, existingSub: sub);
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentTheme = SettingsService.instance.themeBackground;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: currentTheme.background,
       appBar: AppBar(
-        title: const Text('Gói Dịch Vụ Định Kỳ'),
+        backgroundColor: currentTheme.background,
+        title: Text(tr('subscriptions_title')),
         actions: [
+          // Streamlined: Single add button in the AppBar for recurring services
           IconButton(
             onPressed: () async {
-              final added = await AddSubscriptionSheet.show(context);
-              if (added == true) _loadData();
+              await AddSubscriptionSheet.show(context);
             },
             icon: const Icon(Icons.add_rounded, color: AppColors.textPrimary),
+            tooltip: tr('add_subscription'),
           ),
         ],
       ),
@@ -104,7 +121,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           : RefreshIndicator(
               onRefresh: _loadData,
               color: AppColors.textPrimary,
-              backgroundColor: AppColors.surface,
+              backgroundColor: currentTheme.surface,
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
@@ -112,20 +129,20 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: currentTheme.surface,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: currentTheme.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.repeat_rounded, size: 16, color: AppColors.accent),
-                            SizedBox(width: 8),
+                            const Icon(Icons.repeat_rounded, size: 16, color: AppColors.accent),
+                            const SizedBox(width: 8),
                             Text(
-                              'Chi phí cố định định kỳ',
-                              style: TextStyle(
+                              tr('fixed_costs_monthly'),
+                              style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -135,7 +152,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          CurrencyFormatter.formatVND(_monthlyTotal),
+                          SettingsService.instance.formatCurrency(_monthlyTotal),
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
@@ -146,7 +163,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Ước tính tiêu tốn ~${CurrencyFormatter.formatVND(_monthlyTotal * 12)} / năm',
+                          tr('estimated_per_year', {
+                            'amount': SettingsService.instance.formatCurrency(_monthlyTotal * 12),
+                          }),
                           style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                         ),
                       ],
@@ -154,46 +173,33 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Subscriptions list header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Danh sách dịch vụ (${_subscriptions.length})',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () async {
-                          final added = await AddSubscriptionSheet.show(context);
-                          if (added == true) _loadData();
-                        },
-                        icon: const Icon(Icons.add, size: 14, color: AppColors.textSecondary),
-                        label: const Text('Thêm mới', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                      ),
-                    ],
+                  // Subscriptions list header (single label, no duplicate add button)
+                  Text(
+                    tr('services_list', {'count': '${_subscriptions.length}'}),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
 
                   if (_subscriptions.isEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 48),
                       alignment: Alignment.center,
-                      child: const Column(
+                      child: Column(
                         children: [
-                          Icon(Icons.subscriptions_outlined, size: 40, color: AppColors.textTertiary),
-                          SizedBox(height: 12),
+                          const Icon(Icons.subscriptions_outlined, size: 40, color: AppColors.textTertiary),
+                          const SizedBox(height: 12),
                           Text(
-                            'Chưa có dịch vụ định kỳ nào',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                            tr('no_subscriptions'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Bấm nút "+" để thêm Netflix, iCloud, tiền trọ, 4G...',
-                            style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+                            tr('add_subscription_prompt'),
+                            style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                           ),
                         ],
                       ),
@@ -207,6 +213,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                           onMarkPaid: () => _markPaid(sub),
                           onToggleActive: (val) => _toggleActive(sub, val),
                           onDelete: () => _deleteSub(sub),
+                          onEdit: () => _editSub(sub),
                         ),
                       );
                     }),

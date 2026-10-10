@@ -3,18 +3,22 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/categories.dart';
 import '../../../../core/constants/subscription_presets.dart';
 import '../../../../core/database/database_helper.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/services/settings_service.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../models/subscription_item.dart';
 
 class AddSubscriptionSheet extends StatefulWidget {
-  const AddSubscriptionSheet({super.key});
+  final SubscriptionItem? existingSub;
 
-  static Future<bool?> show(BuildContext context) {
+  const AddSubscriptionSheet({super.key, this.existingSub});
+
+  static Future<bool?> show(BuildContext context, {SubscriptionItem? existingSub}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => const AddSubscriptionSheet(),
+      builder: (ctx) => AddSubscriptionSheet(existingSub: existingSub),
     );
   }
 
@@ -30,6 +34,19 @@ class _AddSubscriptionSheetState extends State<AddSubscriptionSheet> {
   String _billingCycle = 'MONTHLY'; // 'MONTHLY', 'YEARLY'
   DateTime _nextBillingDate = DateTime.now().add(const Duration(days: 7));
   final int _reminderDays = 2;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingSub != null) {
+      final sub = widget.existingSub!;
+      _nameController.text = sub.name;
+      _amountController.text = sub.amount.toInt().toString();
+      _category = sub.category;
+      _billingCycle = sub.billingCycle;
+      _nextBillingDate = sub.nextBillingDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -53,29 +70,41 @@ class _AddSubscriptionSheetState extends State<AddSubscriptionSheet> {
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập tên gói dịch vụ')),
+        SnackBar(content: Text(tr('service_name_hint'))),
       );
       return;
     }
 
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ')),
+        SnackBar(content: Text(tr('validation_amount'))),
       );
       return;
     }
 
-    final sub = SubscriptionItem(
-      name: name,
-      amount: amount,
-      billingCycle: _billingCycle,
-      nextBillingDate: _nextBillingDate,
-      category: _category,
-      reminderDaysBefore: _reminderDays,
-      isActive: true,
-    );
+    if (widget.existingSub != null) {
+      final updated = widget.existingSub!.copyWith(
+        name: name,
+        amount: amount,
+        billingCycle: _billingCycle,
+        nextBillingDate: _nextBillingDate,
+        category: _category,
+        reminderDaysBefore: _reminderDays,
+      );
+      await DatabaseHelper.instance.updateSubscription(updated);
+    } else {
+      final sub = SubscriptionItem(
+        name: name,
+        amount: amount,
+        billingCycle: _billingCycle,
+        nextBillingDate: _nextBillingDate,
+        category: _category,
+        reminderDaysBefore: _reminderDays,
+        isActive: true,
+      );
+      await DatabaseHelper.instance.insertSubscription(sub);
+    }
 
-    await DatabaseHelper.instance.insertSubscription(sub);
     if (mounted) {
       Navigator.of(context).pop(true);
     }
@@ -84,6 +113,8 @@ class _AddSubscriptionSheetState extends State<AddSubscriptionSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final currentTheme = SettingsService.instance.themeBackground;
+    final isEditing = widget.existingSub != null;
 
     return Container(
       padding: EdgeInsets.only(
@@ -92,179 +123,200 @@ class _AddSubscriptionSheetState extends State<AddSubscriptionSheet> {
         right: 20,
         bottom: bottomInset + 24,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+      decoration: BoxDecoration(
+        color: currentTheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: currentTheme.border, width: 1)),
       ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle Bar
+            // Handle bar
             Center(
               child: Container(
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: currentTheme.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            const Text(
-              'Thêm gói dịch vụ định kỳ',
-              style: TextStyle(
+            // Header
+            Text(
+              isEditing ? tr('edit_subscription') : tr('add_subscription'),
+              style: const TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 14),
 
-            // Presets quick scroll
-            const Text(
-              'Gợi ý phổ biến (chạm để chọn nhanh):',
-              style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: SubscriptionPresets.popular.map((preset) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ActionChip(
-                      avatar: Icon(preset.icon, size: 14, color: preset.brandColor),
-                      label: Text(preset.name),
-                      backgroundColor: AppColors.surfaceElevated,
-                      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      onPressed: () => _applyPreset(preset),
-                    ),
-                  );
-                }).toList(),
+            // Presets row (only when adding new)
+            if (!isEditing) ...[
+              Text(
+                tr('services_list', {'count': '${SubscriptionPresets.popular.length}'}),
+                style: const TextStyle(color: AppColors.textTertiary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: SubscriptionPresets.popular.map((preset) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        avatar: Icon(preset.icon, size: 16, color: preset.brandColor),
+                        label: Text(preset.name),
+                        backgroundColor: currentTheme.surfaceElevated,
+                        labelStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                        side: BorderSide(color: currentTheme.border),
+                        onPressed: () => _applyPreset(preset),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
-            // Name
-            const Text('Tên dịch vụ / Khoản chi', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 6),
+            // Service Name
             TextField(
               controller: _nameController,
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                hintText: 'Ví dụ: Netflix, Tiền trọ, Gym...',
-                prefixIcon: Icon(Icons.repeat_rounded, size: 20, color: AppColors.textTertiary),
+              decoration: InputDecoration(
+                labelText: tr('service_name'),
+                hintText: tr('service_name_hint'),
+                prefixIcon: const Icon(Icons.bookmark_outline_rounded, color: AppColors.textTertiary),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Amount
-            const Text('Số tiền mỗi kỳ (VND)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 6),
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-              decoration: const InputDecoration(
-                prefixText: '₫ ',
-                prefixStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                hintText: '0',
+              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: tr('amount'),
+                prefixText: '${SettingsService.instance.currency.symbol} ',
+                prefixIcon: const Icon(Icons.attach_money_rounded, color: AppColors.textTertiary),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Billing Cycle & Next Date row
+            // Billing Cycle Segment
             Row(
               children: [
-                // Billing Cycle
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Chu kỳ', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      DropdownButtonFormField<String>(
-                        value: _billingCycle,
-                        dropdownColor: AppColors.surfaceElevated,
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                        decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12)),
-                        items: const [
-                          DropdownMenuItem(value: 'MONTHLY', child: Text('Hàng tháng')),
-                          DropdownMenuItem(value: 'YEARLY', child: Text('Hàng năm')),
-                        ],
-                        onChanged: (val) => setState(() => _billingCycle = val ?? 'MONTHLY'),
-                      ),
-                    ],
+                  child: ChoiceChip(
+                    label: Center(child: Text(tr('monthly'))),
+                    selected: _billingCycle == 'MONTHLY',
+                    onSelected: (val) {
+                      if (val) setState(() => _billingCycle = 'MONTHLY');
+                    },
+                    selectedColor: AppColors.income,
+                    backgroundColor: currentTheme.surfaceElevated,
+                    labelStyle: TextStyle(
+                      color: _billingCycle == 'MONTHLY' ? Colors.black : AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    side: BorderSide(color: currentTheme.border),
                   ),
                 ),
                 const SizedBox(width: 12),
-
-                // Next Billing Date
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Kỳ tới', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _nextBillingDate,
-                            firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (picked != null) setState(() => _nextBillingDate = picked);
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            DateFormatter.formatDate(_nextBillingDate),
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: ChoiceChip(
+                    label: Center(child: Text(tr('yearly'))),
+                    selected: _billingCycle == 'YEARLY',
+                    onSelected: (val) {
+                      if (val) setState(() => _billingCycle = 'YEARLY');
+                    },
+                    selectedColor: AppColors.income,
+                    backgroundColor: currentTheme.surfaceElevated,
+                    labelStyle: TextStyle(
+                      color: _billingCycle == 'YEARLY' ? Colors.black : AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    side: BorderSide(color: currentTheme.border),
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+
+            // Next Billing Date Picker
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _nextBillingDate,
+                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                  lastDate: DateTime.now().add(const Duration(days: 730)),
+                  builder: (context, child) {
+                    return Theme(
+                      data: ThemeData.dark().copyWith(
+                        colorScheme: const ColorScheme.dark(
+                          primary: AppColors.income,
+                          onPrimary: Colors.black,
+                          surface: AppColors.surface,
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() => _nextBillingDate = picked);
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: currentTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: currentTheme.border),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.event_outlined, size: 18, color: AppColors.textTertiary),
+                        const SizedBox(width: 10),
+                        Text(tr('next_billing_date'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      ],
+                    ),
+                    Text(
+                      DateFormatter.formatDate(_nextBillingDate),
+                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 24),
 
             // Submit Button
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.textPrimary,
                   foregroundColor: AppColors.background,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text(
-                  'Lưu Gói Dịch Vụ',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                child: Text(
+                  isEditing ? tr('update_subscription') : tr('save_subscription'),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                 ),
               ),
             ),

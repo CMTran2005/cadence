@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/categories.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/app_data_notifier.dart';
 import '../../../core/services/settings_service.dart';
 import '../../scanner/presentation/camera_scanner_screen.dart';
 import '../models/transaction_item.dart';
@@ -22,9 +24,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String _searchQuery = '';
   bool _isLoading = true;
 
-  // Timeline Filter: null means All Time, otherwise specific year and month
   DateTime? _selectedTimelineMonth;
-
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -33,17 +33,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final now = DateTime.now();
     _selectedTimelineMonth = DateTime(now.year, now.month, 1);
     _loadTransactions();
+
+    // Listen to real-time data changes across the entire app
+    AppDataNotifier.instance.addListener(_loadTransactions);
+    SettingsService.instance.addListener(_onSettingsChanged);
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    AppDataNotifier.instance.removeListener(_loadTransactions);
+    SettingsService.instance.removeListener(_onSettingsChanged);
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadTransactions() async {
-    setState(() => _isLoading = true);
-
     DateTime? startDate;
     DateTime? endDate;
 
@@ -71,7 +79,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _deleteTx(TransactionItem item) async {
     await DatabaseHelper.instance.deleteTransaction(item.id!);
-    _loadTransactions();
+  }
+
+  Future<void> _editTx(TransactionItem item) async {
+    await ManualEntryScreen.navigateTo(context, existingItem: item);
   }
 
   void _previousMonth() {
@@ -127,9 +138,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Chọn mốc thời gian',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    Text(
+                      tr('transaction_date'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     TextButton(
                       onPressed: () {
@@ -137,13 +148,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         setState(() => _selectedTimelineMonth = null);
                         _loadTransactions();
                       },
-                      child: const Text('Xem tất cả', style: TextStyle(color: AppColors.income)),
+                      child: Text(tr('view_all'), style: const TextStyle(color: AppColors.income)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 220,
+                  height: 200,
                   child: GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
@@ -176,7 +187,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             ),
                           ),
                           child: Text(
-                            'Thg $m',
+                            'T$m',
                             style: TextStyle(
                               color: isSelected ? Colors.black : AppColors.textPrimary,
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -226,229 +237,211 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget build(BuildContext context) {
     final currentTheme = SettingsService.instance.themeBackground;
 
-    return AnimatedBuilder(
-      animation: SettingsService.instance,
-      builder: (context, _) {
-        return Scaffold(
-          backgroundColor: currentTheme.background,
-          appBar: AppBar(
-            backgroundColor: currentTheme.background,
-            title: const Text('Sổ Giao Dịch'),
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  final result = await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
-                  );
-                  if (result == true) _loadTransactions();
-                },
-                icon: const Icon(Icons.document_scanner_outlined, color: AppColors.textPrimary),
-                tooltip: 'Quét hóa đơn',
-              ),
-              IconButton(
-                onPressed: () async {
-                  HapticFeedback.lightImpact();
-                  final added = await ManualEntryScreen.navigateTo(context);
-                  if (added == true) _loadTransactions();
-                },
-                icon: const Icon(Icons.add_rounded, color: AppColors.textPrimary),
-                tooltip: 'Nhập tay',
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: currentTheme.background,
+      appBar: AppBar(
+        backgroundColor: currentTheme.background,
+        title: Text(tr('tab_transactions')),
+        actions: [
+          // Streamlined: only the scanner action is in AppBar. The + button is the FAB.
+          IconButton(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CameraScannerScreen()),
+              );
+            },
+            icon: const Icon(Icons.document_scanner_outlined, color: AppColors.textPrimary),
+            tooltip: tr('scan_receipt'),
           ),
-          body: Column(
-            children: [
-              // Search & Timeline Filter Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Column(
-                  children: [
-                    // Timeline Month Navigator Strip
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: currentTheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: currentTheme.border),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search & Timeline Filter Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Column(
+              children: [
+                // Timeline Month Navigator Strip
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: currentTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: currentTheme.border),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textSecondary),
+                        onPressed: _previousMonth,
+                        visualDensity: VisualDensity.compact,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left_rounded, size: 22, color: AppColors.textSecondary),
-                            onPressed: _previousMonth,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          GestureDetector(
-                            onTap: _showMonthYearPicker,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.textTertiary),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _selectedTimelineMonth == null
-                                      ? 'Toàn bộ thời gian'
-                                      : 'Tháng ${_selectedTimelineMonth!.month}, ${_selectedTimelineMonth!.year}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textTertiary),
-                              ],
+                      GestureDetector(
+                        onTap: _showMonthYearPicker,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.textTertiary),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedTimelineMonth == null
+                                  ? tr('all')
+                                  : '${_selectedTimelineMonth!.month}/${_selectedTimelineMonth!.year}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.textSecondary),
-                            onPressed: _nextMonth,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textTertiary),
+                          ],
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Search Input
-                    TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Tìm kiếm theo tên cửa hàng, ghi chú...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textTertiary),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textTertiary),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _searchQuery = '');
-                                  _loadTransactions();
-                                },
-                              )
-                            : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.textSecondary),
+                        onPressed: _nextMonth,
+                        visualDensity: VisualDensity.compact,
                       ),
-                      onChanged: (val) {
-                        setState(() => _searchQuery = val.trim());
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Search Input
+                TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: tr('search_hint'),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textTertiary),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textTertiary),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                              _loadTransactions();
+                            },
+                          )
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (val) {
+                    setState(() => _searchQuery = val.trim());
+                    _loadTransactions();
+                  },
+                ),
+
+                const SizedBox(height: 10),
+
+                // Filter Chips (All, Expense, Income)
+                Row(
+                  children: [
+                    _filterChip(
+                      label: '${tr('all')} (${_transactions.length})',
+                      isSelected: _selectedTypeFilter == null,
+                      onTap: () {
+                        setState(() => _selectedTypeFilter = null);
                         _loadTransactions();
                       },
                     ),
-
-                    const SizedBox(height: 10),
-
-                    // Filter Chips (All, Expense, Income)
-                    Row(
-                      children: [
-                        _filterChip(
-                          label: 'Tất cả (${_transactions.length})',
-                          isSelected: _selectedTypeFilter == null,
-                          onTap: () {
-                            setState(() => _selectedTypeFilter = null);
-                            _loadTransactions();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        _filterChip(
-                          label: 'Chi tiêu',
-                          isSelected: _selectedTypeFilter == TransactionType.expense,
-                          color: AppColors.expense,
-                          onTap: () {
-                            setState(() => _selectedTypeFilter = TransactionType.expense);
-                            _loadTransactions();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        _filterChip(
-                          label: 'Thu nhập',
-                          isSelected: _selectedTypeFilter == TransactionType.income,
-                          color: AppColors.income,
-                          onTap: () {
-                            setState(() => _selectedTypeFilter = TransactionType.income);
-                            _loadTransactions();
-                          },
-                        ),
-                      ],
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      label: tr('expense'),
+                      isSelected: _selectedTypeFilter == TransactionType.expense,
+                      color: AppColors.expense,
+                      onTap: () {
+                        setState(() => _selectedTypeFilter = TransactionType.expense);
+                        _loadTransactions();
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      label: tr('income'),
+                      isSelected: _selectedTypeFilter == TransactionType.income,
+                      color: AppColors.income,
+                      onTap: () {
+                        setState(() => _selectedTypeFilter = TransactionType.income);
+                        _loadTransactions();
+                      },
                     ),
                   ],
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              const SizedBox(height: 6),
+          const SizedBox(height: 6),
 
-              // Transaction List
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: _loadTransactions,
-                        color: AppColors.textPrimary,
-                        backgroundColor: currentTheme.surface,
-                        child: _transactions.isEmpty
-                            ? ListView(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 60),
-                                    child: Center(
-                                      child: Column(
-                                        children: [
-                                          const Icon(Icons.receipt_long_outlined, size: 40, color: AppColors.textTertiary),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            _selectedTimelineMonth == null
-                                                ? 'Chưa có giao dịch nào'
-                                                : 'Không có giao dịch trong Tháng ${_selectedTimelineMonth!.month}/${_selectedTimelineMonth!.year}',
-                                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          OutlinedButton.icon(
-                                            onPressed: () async {
-                                              final added = await ManualEntryScreen.navigateTo(context);
-                                              if (added == true) _loadTransactions();
-                                            },
-                                            icon: const Icon(Icons.add_rounded, size: 16),
-                                            label: const Text('Thêm giao dịch ngay'),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: AppColors.textPrimary,
-                                              side: BorderSide(color: currentTheme.border),
-                                            ),
-                                          ),
-                                        ],
+          // Transaction List with swipe left to delete and swipe right to edit
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _loadTransactions,
+                    color: AppColors.textPrimary,
+                    backgroundColor: currentTheme.surface,
+                    child: _transactions.isEmpty
+                        ? ListView(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 60),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.receipt_long_outlined, size: 40, color: AppColors.textTertiary),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        tr('no_transactions'),
+                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                                       ),
-                                    ),
+                                      const SizedBox(height: 16),
+                                      OutlinedButton.icon(
+                                        onPressed: () => ManualEntryScreen.navigateTo(context),
+                                        icon: const Icon(Icons.add_rounded, size: 16),
+                                        label: Text(tr('add_first_transaction')),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: AppColors.textPrimary,
+                                          side: BorderSide(color: currentTheme.border),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              )
-                            : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                itemCount: _transactions.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                itemBuilder: (context, index) {
-                                  final item = _transactions[index];
-                                  return TransactionCard(
-                                    item: item,
-                                    onDelete: () => _deleteTx(item),
-                                  );
-                                },
+                                ),
                               ),
-                      ),
-              ),
-            ],
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            itemCount: _transactions.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final item = _transactions[index];
+                              return TransactionCard(
+                                item: item,
+                                onDelete: () => _deleteTx(item),
+                                onEdit: () => _editTx(item),
+                              );
+                            },
+                          ),
+                  ),
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              HapticFeedback.lightImpact();
-              final added = await ManualEntryScreen.navigateTo(context);
-              if (added == true) _loadTransactions();
-            },
-            backgroundColor: AppColors.textPrimary,
-            foregroundColor: AppColors.background,
-            elevation: 2,
-            child: const Icon(Icons.add_rounded, size: 28),
-          ),
-        );
-      },
+        ],
+      ),
+      // Single unified Add Button
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          ManualEntryScreen.navigateTo(context);
+        },
+        backgroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.background,
+        elevation: 2,
+        child: const Icon(Icons.add_rounded, size: 28),
+      ),
     );
   }
 

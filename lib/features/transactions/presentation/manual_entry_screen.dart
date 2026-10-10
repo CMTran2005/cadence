@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/categories.dart';
 import '../../../../core/database/database_helper.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/services/settings_service.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -10,13 +11,25 @@ import '../models/transaction_item.dart';
 
 class ManualEntryScreen extends StatefulWidget {
   final TransactionType initialType;
+  final TransactionItem? existingItem;
 
-  const ManualEntryScreen({super.key, this.initialType = TransactionType.expense});
+  const ManualEntryScreen({
+    super.key,
+    this.initialType = TransactionType.expense,
+    this.existingItem,
+  });
 
-  static Future<bool?> navigateTo(BuildContext context, {TransactionType initialType = TransactionType.expense}) {
+  static Future<bool?> navigateTo(
+    BuildContext context, {
+    TransactionType initialType = TransactionType.expense,
+    TransactionItem? existingItem,
+  }) {
     return Navigator.of(context).push<bool>(
       PageRouteBuilder<bool>(
-        pageBuilder: (context, animation, secondaryAnimation) => ManualEntryScreen(initialType: initialType),
+        pageBuilder: (context, animation, secondaryAnimation) => ManualEntryScreen(
+          initialType: initialType,
+          existingItem: existingItem,
+        ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(0.0, 0.08);
           const end = Offset.zero;
@@ -47,14 +60,34 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
+  List<CategoryItemData> _customCategories = [];
+
   final List<double> _quickAddAmounts = [20000, 50000, 100000, 200000, 500000];
 
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType;
-    _category = _type == TransactionType.expense ? CategoryType.food : CategoryType.salary;
-    _date = DateTime.now();
+    final item = widget.existingItem;
+    if (item != null) {
+      _type = item.type;
+      _category = item.category;
+      _date = item.transactionDate;
+      _amountController.text = item.amount.toInt().toString();
+      _titleController.text = item.title;
+      _notesController.text = item.notes ?? '';
+    } else {
+      _type = widget.initialType;
+      _category = _type == TransactionType.expense ? CategoryType.food : CategoryType.salary;
+      _date = DateTime.now();
+    }
+    _loadCustomCategories();
+  }
+
+  Future<void> _loadCustomCategories() async {
+    final list = await DatabaseHelper.instance.getAllCustomCategories();
+    if (mounted) {
+      setState(() => _customCategories = list);
+    }
   }
 
   @override
@@ -73,12 +106,42 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     setState(() {});
   }
 
+  List<CategoryType> get _expenseCategories => const [
+    CategoryType.food,
+    CategoryType.shopping,
+    CategoryType.transport,
+    CategoryType.bills,
+    CategoryType.subscriptions,
+    CategoryType.entertainment,
+    CategoryType.health,
+    CategoryType.education,
+    CategoryType.other,
+  ];
+
+  List<CategoryType> get _incomeCategories => const [
+    CategoryType.salary,
+    CategoryType.freelance,
+    CategoryType.investment,
+    CategoryType.gift,
+    CategoryType.sales,
+    CategoryType.other,
+  ];
+
+  void _changeType(TransactionType newType) {
+    if (_type == newType) return;
+    setState(() {
+      _type = newType;
+      // Auto-switch to valid category for new type
+      _category = newType == TransactionType.expense ? CategoryType.food : CategoryType.salary;
+    });
+  }
+
   Future<void> _submit() async {
     final amount = CurrencyFormatter.parseAmount(_amountController.text);
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập số tiền lớn hơn 0'),
+        SnackBar(
+          content: Text(tr('validation_amount')),
           backgroundColor: AppColors.expense,
         ),
       );
@@ -86,20 +149,32 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     }
 
     final title = _titleController.text.trim().isEmpty
-        ? (_type == TransactionType.expense ? _category.displayName : 'Thu nhập mới')
+        ? (_type == TransactionType.expense ? _category.displayName : tr('cat_salary'))
         : _titleController.text.trim();
 
-    final tx = TransactionItem(
-      title: title,
-      amount: amount,
-      type: _type,
-      category: _category,
-      transactionDate: _date,
-      source: 'MANUAL',
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-    );
+    if (widget.existingItem != null) {
+      final updated = widget.existingItem!.copyWith(
+        title: title,
+        amount: amount,
+        type: _type,
+        category: _category,
+        transactionDate: _date,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      );
+      await DatabaseHelper.instance.updateTransaction(updated);
+    } else {
+      final tx = TransactionItem(
+        title: title,
+        amount: amount,
+        type: _type,
+        category: _category,
+        transactionDate: _date,
+        source: 'MANUAL',
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      );
+      await DatabaseHelper.instance.insertTransaction(tx);
+    }
 
-    await DatabaseHelper.instance.insertTransaction(tx);
     if (mounted) {
       HapticFeedback.mediumImpact();
       Navigator.of(context).pop(true);
@@ -131,10 +206,149 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     }
   }
 
+  void _showAddCategoryDialog() {
+    final nameCtrl = TextEditingController();
+    IconData selectedIcon = Icons.stars_rounded;
+    Color selectedColor = const Color(0xFFF59E0B);
+
+    final availableIcons = [
+      Icons.stars_rounded,
+      Icons.local_cafe_rounded,
+      Icons.local_gas_station_rounded,
+      Icons.home_outlined,
+      Icons.fitness_center_rounded,
+      Icons.pets_rounded,
+      Icons.flight_takeoff_rounded,
+      Icons.medical_services_outlined,
+      Icons.school_outlined,
+      Icons.shopping_bag_outlined,
+      Icons.build_rounded,
+      Icons.savings_outlined,
+      Icons.card_giftcard_rounded,
+    ];
+
+    final availableColors = [
+      const Color(0xFFF59E0B),
+      const Color(0xFF10B981),
+      const Color(0xFF06B6D4),
+      const Color(0xFF3B82F6),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFEC4899),
+      const Color(0xFFEF4444),
+      const Color(0xFF14B8A6),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(tr('add_category'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: tr('category_name'),
+                      hintText: tr('category_name_hint'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(tr('choose_icon'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: availableIcons.map((ic) {
+                      final isSelected = ic == selectedIcon;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => selectedIcon = ic),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.income.withOpacity(0.2) : AppColors.surfaceElevated,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isSelected ? AppColors.income : AppColors.border),
+                          ),
+                          child: Icon(ic, size: 20, color: isSelected ? AppColors.income : AppColors.textSecondary),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(tr('choose_color'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    children: availableColors.map((clr) {
+                      final isSelected = clr == selectedColor;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => selectedColor = clr),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: clr,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? Colors.white : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(tr('cancel'), style: const TextStyle(color: AppColors.textTertiary)),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = nameCtrl.text.trim();
+                  if (name.isEmpty) return;
+                  final newCat = CategoryItemData(
+                    id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                    name: name,
+                    icon: selectedIcon,
+                    color: selectedColor,
+                    type: _type,
+                    isCustom: true,
+                  );
+                  await DatabaseHelper.instance.insertCustomCategory(newCat);
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                  await _loadCustomCategories();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.textPrimary,
+                  foregroundColor: AppColors.background,
+                ),
+                child: Text(tr('save')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isExpense = _type == TransactionType.expense;
     final currentTheme = SettingsService.instance.themeBackground;
+    final isEditing = widget.existingItem != null;
+
+    final displayedCategories = isExpense ? _expenseCategories : _incomeCategories;
+    final customForType = _customCategories.where((c) => c.type == _type).toList();
 
     return Scaffold(
       backgroundColor: currentTheme.background,
@@ -146,17 +360,22 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
           onPressed: () => Navigator.of(context).pop(false),
         ),
         title: Text(
-          isExpense ? 'Ghi chép chi tiêu' : 'Ghi chép thu nhập',
+          isEditing
+              ? tr('edit_entry_title')
+              : (isExpense ? tr('entry_expense_title') : tr('entry_income_title')),
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
         ),
         actions: [
-          TextButton(
-            onPressed: _submit,
-            style: TextButton.styleFrom(
-              foregroundColor: isExpense ? AppColors.expense : AppColors.income,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: TextButton(
+              onPressed: _submit,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.income,
+                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+              child: Text(isEditing ? tr('update_transaction') : tr('save')),
             ),
-            child: const Text('LƯU'),
           ),
         ],
       ),
@@ -165,9 +384,9 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 children: [
-                  // Type Switcher: Expense vs Income
+                  // Dual Type Segmented Switch (Chi tiêu vs Thu nhập)
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -178,165 +397,77 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              if (_type != TransactionType.expense) {
-                                HapticFeedback.selectionClick();
-                                setState(() {
-                                  _type = TransactionType.expense;
-                                  _category = CategoryType.food;
-                                });
-                              }
-                            },
+                          child: InkWell(
+                            onTap: () => _changeType(TransactionType.expense),
+                            borderRadius: BorderRadius.circular(10),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isExpense ? AppColors.expenseSubtle : Colors.transparent,
+                                color: isExpense ? AppColors.expense.withOpacity(0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
-                                border: isExpense ? Border.all(color: AppColors.expense, width: 1.2) : null,
+                                border: isExpense
+                                    ? Border.all(color: AppColors.expense.withOpacity(0.5))
+                                    : null,
                               ),
-                              child: Center(
-                                child: Text(
-                                  'Khoản Chi (-)',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_downward_rounded,
+                                    size: 16,
                                     color: isExpense ? AppColors.expense : AppColors.textTertiary,
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    tr('expense'),
+                                    style: TextStyle(
+                                      color: isExpense ? AppColors.expense : AppColors.textSecondary,
+                                      fontWeight: isExpense ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              if (_type != TransactionType.income) {
-                                HapticFeedback.selectionClick();
-                                setState(() {
-                                  _type = TransactionType.income;
-                                  _category = CategoryType.salary;
-                                });
-                              }
-                            },
+                          child: InkWell(
+                            onTap: () => _changeType(TransactionType.income),
+                            borderRadius: BorderRadius.circular(10),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: !isExpense ? AppColors.incomeSubtle : Colors.transparent,
+                                color: !isExpense ? AppColors.income.withOpacity(0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
-                                border: !isExpense ? Border.all(color: AppColors.income, width: 1.2) : null,
+                                border: !isExpense
+                                    ? Border.all(color: AppColors.income.withOpacity(0.5))
+                                    : null,
                               ),
-                              child: Center(
-                                child: Text(
-                                  'Khoản Thu (+)',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_upward_rounded,
+                                    size: 16,
                                     color: !isExpense ? AppColors.income : AppColors.textTertiary,
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    tr('income'),
+                                    style: TextStyle(
+                                      color: !isExpense ? AppColors.income : AppColors.textSecondary,
+                                      fontWeight: !isExpense ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Amount Hero Input
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                    decoration: BoxDecoration(
-                      color: currentTheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: currentTheme.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'SỐ TIỀN (${SettingsService.instance.currency.symbol})',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            letterSpacing: 0.8,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              isExpense ? '-' : '+',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w700,
-                                color: isExpense ? AppColors.expense : AppColors.income,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _amountController,
-                                autofocus: true,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: -1.0,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: '0',
-                                  hintStyle: TextStyle(
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textTertiary.withOpacity(0.5),
-                                  ),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.zero,
-                                  fillColor: Colors.transparent,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Quick Add Buttons (+50k, +100k, etc.)
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _quickAddAmounts.map((q) {
-                            return InkWell(
-                              onTap: () => _addQuickAmount(q),
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: currentTheme.surfaceElevated,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: currentTheme.border),
-                                ),
-                                child: Text(
-                                  '+${CurrencyFormatter.formatCompact(q)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
                         ),
                       ],
                     ),
@@ -344,67 +475,204 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Title / Merchant Input
+                  // Large Hero Amount Input Field
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: currentTheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: currentTheme.border),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              SettingsService.instance.currency.symbol,
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: isExpense ? AppColors.textTertiary : AppColors.income,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _amountController,
+                                autofocus: !isEditing,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -1.0,
+                                  fontFeatures: [FontFeature.tabularFigures()],
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: tr('enter_amount_hint'),
+                                  hintStyle: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textTertiary.withOpacity(0.3),
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  fillColor: Colors.transparent,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Quick increment amount chips
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _quickAddAmounts.map((amt) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: InkWell(
+                                  onTap: () => _addQuickAmount(amt),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: currentTheme.surfaceElevated,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: currentTheme.border),
+                                    ),
+                                    child: Text(
+                                      '+${SettingsService.instance.formatCompactCurrency(amt)}',
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Item Name Field
                   TextField(
                     controller: _titleController,
                     style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
                     decoration: InputDecoration(
-                      labelText: 'Tên mục / Cửa hàng',
-                      hintText: isExpense ? 'Ví dụ: Cơm trưa, Siêu thị WinMart...' : 'Ví dụ: Lương thưởng, Hoàn tiền...',
+                      labelText: tr('item_name_label'),
+                      hintText: isExpense ? tr('item_expense_hint') : tr('item_income_hint'),
                       prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColors.textTertiary, size: 20),
                     ),
                   ),
 
                   const SizedBox(height: 18),
 
-                  // Category Selector Chips
+                  // Filtered Category Selector Chips (Separated by Type + Custom Categories)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'DANH MỤC PHÂN LOẠI',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                          color: AppColors.textTertiary,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            tr('category_classify'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _showAddCategoryDialog,
+                            icon: const Icon(Icons.add_rounded, size: 14),
+                            label: Text(tr('add_category'), style: const TextStyle(fontSize: 11)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.income,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: CategoryType.values.map((cat) {
-                          final isSelected = cat == _category;
-                          return ChoiceChip(
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(cat.icon, size: 14, color: isSelected ? Colors.black : AppColors.textSecondary),
-                                const SizedBox(width: 6),
-                                Text(cat.displayName),
-                              ],
-                            ),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              if (selected) {
+                        children: [
+                          // Standard Categories for current type
+                          ...displayedCategories.map((cat) {
+                            final isSelected = cat == _category;
+                            return ChoiceChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(cat.icon, size: 14, color: isSelected ? Colors.black : cat.color),
+                                  const SizedBox(width: 6),
+                                  Text(cat.displayName),
+                                ],
+                              ),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  HapticFeedback.selectionClick();
+                                  setState(() => _category = cat);
+                                }
+                              },
+                              selectedColor: isExpense ? AppColors.expense : AppColors.income,
+                              backgroundColor: currentTheme.surfaceElevated,
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.black : AppColors.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                              side: BorderSide(
+                                color: isSelected ? Colors.transparent : currentTheme.border,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            );
+                          }),
+                          // Custom Categories created by user
+                          ...customForType.map((customCat) {
+                            return ChoiceChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(customCat.icon, size: 14, color: customCat.color),
+                                  const SizedBox(width: 6),
+                                  Text(customCat.name),
+                                ],
+                              ),
+                              selected: false,
+                              onSelected: (_) {
                                 HapticFeedback.selectionClick();
-                                setState(() => _category = cat);
-                              }
-                            },
-                            selectedColor: isExpense ? AppColors.expense : AppColors.income,
-                            backgroundColor: currentTheme.surfaceElevated,
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.black : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                            side: BorderSide(
-                              color: isSelected ? Colors.transparent : currentTheme.border,
-                            ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          );
-                        }).toList(),
+                                _titleController.text = customCat.name;
+                                setState(() => _category = CategoryType.other);
+                              },
+                              backgroundColor: currentTheme.surfaceElevated,
+                              labelStyle: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                              side: BorderSide(color: currentTheme.border),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            );
+                          }),
+                        ],
                       ),
                     ],
                   ),
@@ -429,7 +697,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                             children: [
                               const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textTertiary),
                               const SizedBox(width: 12),
-                              const Text('Ngày giao dịch', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                              Text(tr('transaction_date'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                             ],
                           ),
                           Row(
@@ -453,45 +721,43 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Notes Input
+                  // Notes Field
                   TextField(
                     controller: _notesController,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                     maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Ghi chú (Tùy chọn)',
-                      hintText: 'Thêm chi tiết hóa đơn hoặc lưu ý cá nhân...',
-                      prefixIcon: Icon(Icons.notes_rounded, color: AppColors.textTertiary, size: 20),
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: tr('notes_optional'),
+                      hintText: tr('notes_hint'),
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.only(bottom: 24),
+                        child: Icon(Icons.notes_rounded, color: AppColors.textTertiary, size: 20),
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
                 ],
               ),
             ),
 
-            // Bottom Confirm Button
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: currentTheme.surface,
-                border: Border(top: BorderSide(color: currentTheme.border)),
-              ),
+            // Submit Button
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                height: 52,
+                child: ElevatedButton(
                   onPressed: _submit,
-                  icon: const Icon(Icons.check_rounded, size: 20),
-                  label: Text(
-                    isExpense ? 'Lưu Khoản Chi Tiêu' : 'Lưu Khoản Thu Nhập',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isExpense ? AppColors.expense : AppColors.income,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: AppColors.textPrimary,
+                    foregroundColor: AppColors.background,
                     elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(
+                    isEditing ? tr('update_transaction') : tr('save_transaction'),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/constants/app_colors.dart';
+import 'core/localization/app_localizations.dart';
 import 'core/services/settings_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/analytics/presentation/analytics_screen.dart';
@@ -88,26 +89,26 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           height: 64,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           onDestinationSelected: (index) => setState(() => _currentIndex = index),
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined, size: 22, color: AppColors.textTertiary),
-              selectedIcon: Icon(Icons.home_rounded, size: 22, color: AppColors.textPrimary),
-              label: 'Tổng quan',
+              icon: const Icon(Icons.home_outlined, size: 22, color: AppColors.textTertiary),
+              selectedIcon: const Icon(Icons.home_rounded, size: 22, color: AppColors.textPrimary),
+              label: tr('tab_overview'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.repeat_outlined, size: 22, color: AppColors.textTertiary),
-              selectedIcon: Icon(Icons.repeat_rounded, size: 22, color: AppColors.textPrimary),
-              label: 'Gói định kỳ',
+              icon: const Icon(Icons.repeat_outlined, size: 22, color: AppColors.textTertiary),
+              selectedIcon: const Icon(Icons.repeat_rounded, size: 22, color: AppColors.textPrimary),
+              label: tr('tab_subscriptions'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined, size: 22, color: AppColors.textTertiary),
-              selectedIcon: Icon(Icons.receipt_long_rounded, size: 22, color: AppColors.textPrimary),
-              label: 'Sổ thu chi',
+              icon: const Icon(Icons.receipt_long_outlined, size: 22, color: AppColors.textTertiary),
+              selectedIcon: const Icon(Icons.receipt_long_rounded, size: 22, color: AppColors.textPrimary),
+              label: tr('tab_transactions'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.bar_chart_outlined, size: 22, color: AppColors.textTertiary),
-              selectedIcon: Icon(Icons.bar_chart_rounded, size: 22, color: AppColors.textPrimary),
-              label: 'Phân tích',
+              icon: const Icon(Icons.bar_chart_outlined, size: 22, color: AppColors.textTertiary),
+              selectedIcon: const Icon(Icons.bar_chart_rounded, size: 22, color: AppColors.textPrimary),
+              label: tr('tab_analytics'),
             ),
           ],
         ),

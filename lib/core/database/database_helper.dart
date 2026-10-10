@@ -1,18 +1,19 @@
 import 'dart:io';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../features/transactions/models/transaction_item.dart';
 import '../../features/subscriptions/models/subscription_item.dart';
 import '../constants/categories.dart';
+import '../services/app_data_notifier.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'cadence_finance.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   static const String tableTransactions = 'transactions';
   static const String tableSubscriptions = 'subscriptions';
   static const String tableSettings = 'settings';
+  static const String tableCustomCategories = 'custom_categories';
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -22,12 +23,12 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
+    await cleanSampleDataIfNeeded();
     return _database!;
   }
 
   Future<Database> _initDatabase() async {
-    final docsDir = await getApplicationDocumentsDirectory();
-    final dbPath = join(docsDir.path, _dbName);
+    final dbPath = join(await getDatabasesPath(), _dbName);
 
     return await openDatabase(
       dbPath,
@@ -74,127 +75,79 @@ class DatabaseHelper {
           )
         ''');
 
-        // Seed initial starter data so app is immediately full and delightful
-        await _seedInitialData(db);
+        // Custom Categories table
+        await db.execute('''
+          CREATE TABLE $tableCustomCategories (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            iconCode INTEGER NOT NULL,
+            colorValue INTEGER NOT NULL,
+            type TEXT NOT NULL
+          )
+        ''');
+
+        // Seed default target savings setting only (NO sample transactions/subs)
+        await db.insert(tableSettings, {
+          'key': 'target_savings',
+          'value': '3000000',
+        });
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS $tableCustomCategories (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              iconCode INTEGER NOT NULL,
+              colorValue INTEGER NOT NULL,
+              type TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
   }
 
-  Future<void> _seedInitialData(Database db) async {
-    final now = DateTime.now();
+  /// Clean legacy seeded mock data if present on existing user storage
+  Future<void> cleanSampleDataIfNeeded() async {
+    try {
+      final db = _database;
+      if (db == null) return;
+      final flag = await getSetting('sample_purged_v2');
+      if (flag != 'true') {
+        // Purge mock demo items from transactions
+        await db.delete(
+          tableTransactions,
+          where: "title LIKE 'Lương chuyển khoản tháng%' OR title LIKE 'WinMart+ Đà Nẵng%' OR title LIKE 'Highlands Coffee%' OR title LIKE 'Tiền thưởng dự án%' OR title LIKE 'Shopee Đơn%' OR title LIKE 'Đổ xăng Petrolimex%'",
+        );
+        // Purge mock demo items from subscriptions
+        await db.delete(
+          tableSubscriptions,
+          where: "name IN ('Netflix 4K Family', 'Spotify Premium', 'Apple iCloud (50GB)', 'Internet Viettel Cáp Quang', 'Gói 4G 120GB/tháng')",
+        );
+        await setSetting('sample_purged_v2', 'true');
+      }
+    } catch (_) {}
+  }
 
-    // 1. Seed Subscriptions
-    final initialSubscriptions = [
-      SubscriptionItem(
-        name: 'Netflix 4K Family',
-        amount: 260000,
-        billingCycle: 'MONTHLY',
-        nextBillingDate: DateTime(now.year, now.month, 15),
-        category: CategoryType.entertainment,
-      ),
-      SubscriptionItem(
-        name: 'Spotify Premium',
-        amount: 59000,
-        billingCycle: 'MONTHLY',
-        nextBillingDate: DateTime(now.year, now.month, 22),
-        category: CategoryType.entertainment,
-      ),
-      SubscriptionItem(
-        name: 'Apple iCloud (50GB)',
-        amount: 19000,
-        billingCycle: 'MONTHLY',
-        nextBillingDate: DateTime(now.year, now.month, 18),
-        category: CategoryType.subscriptions,
-      ),
-      SubscriptionItem(
-        name: 'Internet Viettel Cáp Quang',
-        amount: 220000,
-        billingCycle: 'MONTHLY',
-        nextBillingDate: DateTime(now.year, now.month, 28),
-        category: CategoryType.bills,
-      ),
-      SubscriptionItem(
-        name: 'Gói 4G 120GB/tháng',
-        amount: 120000,
-        billingCycle: 'MONTHLY',
-        nextBillingDate: DateTime(now.year, now.month, 10),
-        category: CategoryType.bills,
-      ),
-    ];
-
-    for (final sub in initialSubscriptions) {
-      await db.insert(tableSubscriptions, sub.toMap());
-    }
-
-    // 2. Seed Transactions (Income + Expenses)
-    final initialTransactions = [
-      TransactionItem(
-        title: 'Lương chuyển khoản tháng ${now.month}',
-        amount: 18500000,
-        type: TransactionType.income,
-        category: CategoryType.salary,
-        transactionDate: DateTime(now.year, now.month, 1),
-        source: 'MANUAL',
-      ),
-      TransactionItem(
-        title: 'WinMart+ Đà Nẵng',
-        amount: 105000,
-        type: TransactionType.expense,
-        category: CategoryType.food,
-        transactionDate: DateTime(now.year, now.month, now.day - 1, 14, 30),
-        source: 'OCR_SCAN',
-        notes: 'Sữa tươi, bánh mì sandwich, xúc xích',
-      ),
-      TransactionItem(
-        title: 'Highlands Coffee',
-        amount: 59000,
-        type: TransactionType.expense,
-        category: CategoryType.food,
-        transactionDate: DateTime(now.year, now.month, now.day, 8, 45),
-        source: 'MANUAL',
-      ),
-      TransactionItem(
-        title: 'Tiền thưởng dự án Q3',
-        amount: 2000000,
-        type: TransactionType.income,
-        category: CategoryType.gift,
-        transactionDate: DateTime(now.year, now.month, 3),
-        source: 'MANUAL',
-      ),
-      TransactionItem(
-        title: 'Shopee Đơn công nghệ',
-        amount: 320000,
-        type: TransactionType.expense,
-        category: CategoryType.shopping,
-        transactionDate: DateTime(now.year, now.month, now.day - 2),
-        source: 'MANUAL',
-      ),
-      TransactionItem(
-        title: 'Đổ xăng Petrolimex',
-        amount: 80000,
-        type: TransactionType.expense,
-        category: CategoryType.transport,
-        transactionDate: DateTime(now.year, now.month, now.day - 3),
-        source: 'OCR_SCAN',
-      ),
-    ];
-
-    for (final tx in initialTransactions) {
-      await db.insert(tableTransactions, tx.toMap());
-    }
-
-    // Default monthly target savings
-    await db.insert(tableSettings, {
-      'key': 'target_savings',
-      'value': '3000000',
-    });
+  /// Wipe all user data completely (Transactions, Subscriptions, Custom Categories)
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete(tableTransactions);
+    await db.delete(tableSubscriptions);
+    try {
+      await db.delete(tableCustomCategories);
+    } catch (_) {}
+    AppDataNotifier.instance.notifyDataChanged();
   }
 
   // ================= TRANSACTIONS =================
 
   Future<int> insertTransaction(TransactionItem item) async {
     final db = await database;
-    return await db.insert(tableTransactions, item.toMap());
+    final id = await db.insert(tableTransactions, item.toMap());
+    AppDataNotifier.instance.notifyDataChanged();
+    return id;
   }
 
   Future<List<TransactionItem>> getAllTransactions({
@@ -265,12 +218,14 @@ class DatabaseHelper {
 
   Future<int> updateTransaction(TransactionItem item) async {
     final db = await database;
-    return await db.update(
+    final rows = await db.update(
       tableTransactions,
       item.toMap(),
       where: 'id = ?',
       whereArgs: [item.id],
     );
+    AppDataNotifier.instance.notifyDataChanged();
+    return rows;
   }
 
   Future<int> deleteTransaction(int id) async {
@@ -285,14 +240,18 @@ class DatabaseHelper {
         } catch (_) {}
       }
     }
-    return await db.delete(tableTransactions, where: 'id = ?', whereArgs: [id]);
+    final rows = await db.delete(tableTransactions, where: 'id = ?', whereArgs: [id]);
+    AppDataNotifier.instance.notifyDataChanged();
+    return rows;
   }
 
   // ================= SUBSCRIPTIONS =================
 
   Future<int> insertSubscription(SubscriptionItem sub) async {
     final db = await database;
-    return await db.insert(tableSubscriptions, sub.toMap());
+    final id = await db.insert(tableSubscriptions, sub.toMap());
+    AppDataNotifier.instance.notifyDataChanged();
+    return id;
   }
 
   Future<List<SubscriptionItem>> getAllSubscriptions() async {
@@ -317,17 +276,21 @@ class DatabaseHelper {
 
   Future<int> updateSubscription(SubscriptionItem sub) async {
     final db = await database;
-    return await db.update(
+    final rows = await db.update(
       tableSubscriptions,
       sub.toMap(),
       where: 'id = ?',
       whereArgs: [sub.id],
     );
+    AppDataNotifier.instance.notifyDataChanged();
+    return rows;
   }
 
   Future<int> deleteSubscription(int id) async {
     final db = await database;
-    return await db.delete(tableSubscriptions, where: 'id = ?', whereArgs: [id]);
+    final rows = await db.delete(tableSubscriptions, where: 'id = ?', whereArgs: [id]);
+    AppDataNotifier.instance.notifyDataChanged();
+    return rows;
   }
 
   Future<void> toggleSubscriptionActive(int id, bool isActive) async {
@@ -338,11 +301,41 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+    AppDataNotifier.instance.notifyDataChanged();
+  }
+
+  // ================= CUSTOM CATEGORIES =================
+
+  Future<void> insertCustomCategory(CategoryItemData cat) async {
+    final db = await database;
+    await db.insert(
+      tableCustomCategories,
+      cat.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    AppDataNotifier.instance.notifyDataChanged();
+  }
+
+  Future<List<CategoryItemData>> getAllCustomCategories() async {
+    final db = await database;
+    try {
+      final maps = await db.query(tableCustomCategories);
+      return maps.map((m) => CategoryItemData.fromMap(m)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> deleteCustomCategory(String id) async {
+    final db = await database;
+    try {
+      await db.delete(tableCustomCategories, where: 'id = ?', whereArgs: [id]);
+      AppDataNotifier.instance.notifyDataChanged();
+    } catch (_) {}
   }
 
   // ================= FINANCIAL AGGREGATIONS =================
 
-  /// Get total income for the current month
   Future<double> getCurrentMonthIncome() async {
     final db = await database;
     final now = DateTime.now();
@@ -357,7 +350,6 @@ class DatabaseHelper {
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
-  /// Get total expenses for the current month
   Future<double> getCurrentMonthExpense() async {
     final db = await database;
     final now = DateTime.now();
@@ -372,7 +364,6 @@ class DatabaseHelper {
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
-  /// Total monthly fixed subscription burden
   Future<double> getMonthlySubscriptionTotal() async {
     final activeSubs = await getActiveSubscriptions();
     double total = 0.0;
@@ -382,7 +373,6 @@ class DatabaseHelper {
     return total;
   }
 
-  /// Safe-to-spend: (Income - FixedSub - TargetSavings - CurrentExpenses) / DaysRemaining
   Future<double> calculateSafeToSpendToday() async {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -392,7 +382,6 @@ class DatabaseHelper {
     final fixedCosts = await getMonthlySubscriptionTotal();
     final currentExpenses = await getCurrentMonthExpense();
 
-    // Default target savings 15% of income or 2.000.000
     final targetSavings = (income > 0) ? income * 0.15 : 2000000.0;
 
     final disposablePool = income - fixedCosts - targetSavings - currentExpenses;
@@ -401,7 +390,6 @@ class DatabaseHelper {
     return disposablePool / daysRemaining;
   }
 
-  /// Category breakdown for current month expenses
   Future<Map<CategoryType, double>> getCategoryExpenseBreakdown() async {
     final db = await database;
     final now = DateTime.now();
@@ -424,7 +412,6 @@ class DatabaseHelper {
     return map;
   }
 
-  /// Category breakdown for any date range
   Future<Map<CategoryType, double>> getCategoryExpenseBreakdownForRange({
     required DateTime startDate,
     required DateTime endDate,
@@ -450,7 +437,6 @@ class DatabaseHelper {
     return map;
   }
 
-  /// Get income and expense summary for any given date range
   Future<Map<String, double>> getPeriodSummary({
     required DateTime startDate,
     required DateTime endDate,
@@ -477,7 +463,6 @@ class DatabaseHelper {
     return {'income': income, 'expense': expense};
   }
 
-  /// Get daily expense totals for a list of days
   Future<List<double>> getDailyExpensesForRange({
     required DateTime startDate,
     required int numDays,
@@ -502,7 +487,6 @@ class DatabaseHelper {
     return dailyTotals;
   }
 
-  /// Get 12 months expense totals for a given year (Jan to Dec)
   Future<List<double>> getMonthlyExpensesForYear(int year) async {
     final db = await database;
     final List<double> monthlyTotals = [];
@@ -524,7 +508,6 @@ class DatabaseHelper {
     return monthlyTotals;
   }
 
-  /// Get all unique years present in transactions
   Future<List<int>> getAvailableYears() async {
     final db = await database;
     final results = await db.rawQuery('''

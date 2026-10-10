@@ -1,64 +1,63 @@
-# Cadence Finance 💳⚡
+# Cadence
 
-**Cadence** là ứng dụng quản lý tài chính cá nhân thế hệ mới: Hỗ trợ **quét hóa đơn OCR tự động**, quản lý **gói dịch vụ định kỳ (Subscriptions)**, biểu đồ **phân tích dòng tiền theo tuần/tháng/năm** và tính toán **chỉ số chi tiêu an toàn hàng ngày (Safe-to-Spend)**.
+Cadence là ứng dụng theo dõi và quản lý tài chính cá nhân: Hỗ trợ quét hóa đơn OCR tự động trên thiết bị, quản lý gói dịch vụ định kỳ, phân tích dòng tiền theo thời gian thực và tính toán chỉ số chi tiêu an toàn hàng ngày (Safe-to-Spend).
 
-Thiết kế giao diện được chuẩn hóa theo tiêu chuẩn **Taste-Skill (Anti-AI Slop)**: Sử dụng bảng màu Zinc/Slate/OLED tối giản, font số Tabular Figures, viền mảnh 1px có chủ đích và phân cấp thị giác tinh tế.
-
----
-
-## 🚀 Tính năng nổi bật
-
-### 1. Nhập liệu kép linh hoạt & Phản hồi tức thì
-- **Quét hóa đơn bằng Camera (On-Device OCR):** Tích hợp Google ML Kit Text Recognition chạy 100% offline trên thiết bị (zero-cloud cost, bảo mật dữ liệu). Tự động nhận diện tổng số tiền, tên cửa hàng/dịch vụ, ngày giờ và gợi ý danh mục chi tiêu.
-- **Hỗ trợ thử hóa đơn mẫu:** Nút *"Thử bill mẫu"* giúp test ngay luồng OCR mà không cần bill giấy thực tế.
-- **Màn hình Ghi chép giao dịch chuyên dụng (Manual Entry Screen):** Phản hồi tức thì không khựng, chuyển đổi Thu/Chi nhanh chóng, bàn phím số lớn, chip cộng tiền nhanh (+20k, +50k, +100k, +200k, +500k), lưu giao dịch mượt mà dưới 2 giây.
-
-### 2. Quản lý Gói dịch vụ định kỳ (Subscriptions Hub)
-- Theo dõi các khoản chi cố định: Netflix, Spotify, iCloud, ChatGPT, Tiền trọ, Gói cước 4G, Gym...
-- Tự động chuẩn hóa chi phí theo tháng (Normalized monthly burn rate).
-- Đếm ngược hạn trừ tiền tiếp theo (*"Còn 3 ngày"*, *"Đến hạn hôm nay"*).
-- Tính năng **"Đã thanh toán kỳ này"**: 1 chạm tự động chuyển kỳ thanh toán tới và tự động sinh bản ghi chi tiêu vào sổ giao dịch.
-
-### 3. Chỉ số tài chính "Safe-to-Spend" (An toàn để tiêu hôm nay)
-- Công thức thông minh:
-  $$\text{Safe-to-Spend} = \frac{\text{Tổng thu} - \text{Gói định kỳ} - \text{Quỹ tiết kiệm mục tiêu} - \text{Đã tiêu}}{\text{Số ngày còn lại trong tháng}}$$
-- Giúp người dùng biết chính xác mỗi ngày được tiêu tối đa bao nhiêu để cuối tháng không bị âm tiền.
-
-### 4. Báo cáo & Biểu đồ biến động chi tiêu theo Tuần / Tháng / Năm
-- **Biểu đồ cột trực quan (Spending Bar Chart):** Theo dõi mức độ chi tiêu theo 7 ngày trong tuần, các tuần trong tháng, hoặc 12 tháng trong năm. Chạm vào cột để xem số tiền chi tiết và điểm chi tiêu cao nhất (Peak).
-- **Bộ lọc mốc thời gian linh hoạt:** Dễ dàng lật lại xem báo cáo hoặc danh sách giao dịch của bất kỳ tháng hoặc năm nào trong quá khứ.
-
-### 5. Cài đặt cá nhân hóa toàn diện (Settings Hub)
-- **Màu nền giao diện (Theme Background):** Hỗ trợ 4 phong cách tối sang trọng:
-  - *Dark Zinc* (Zinc 950 mặc định)
-  - *OLED Pure Black* (Đen tuyền #000000, siêu tiết kiệm pin màn hình AMOLED)
-  - *Midnight Slate* (Xanh đêm sâu thẳm)
-  - *Warm Charcoal* (Than chì ấm áp, dịu mắt)
-- **Tiền tệ linh hoạt:** VND (₫), USD ($), EUR (€), JPY (¥).
-- **Đa ngôn ngữ:** Tiếng Việt 🇻🇳, English 🇬🇧.
+Thiết kế giao diện tuân theo tiêu chuẩn Taste-Skill (Anti-AI Slop): Bảng màu tối giản (Zinc, OLED, Slate, Charcoal, Forest, Obsidian, Crimson, Arctic), font số Tabular Figures, viền mảnh 1px có chủ đích và phân cấp thị giác rõ ràng.
 
 ---
 
-## 🛠️ Công nghệ cốt lõi
+## Tính năng chính
+
+### 1. Nhập liệu linh hoạt và tức thì
+- **Quét hóa đơn bằng Camera (On-Device OCR):** Tích hợp Google ML Kit Text Recognition chạy ngoại tuyến trên thiết bị, bảo mật dữ liệu, không gửi thông tin tài chính ra máy chủ ngoài. Tự động nhận diện số tiền, tên cửa hàng và gợi ý danh mục. Hỗ trợ phân loại hóa đơn mua hàng (Chi tiêu) hoặc bill chuyển khoản (Thu nhập).
+- **Màn hình Ghi chép giao dịch chuyên dụng:** Chuyển đổi nhanh giữa Thu nhập và Chi tiêu, bàn phím số tối ưu, phím cộng tiền nhanh, phản hồi tức thì.
+- **Tùy biến danh mục:** Tách biệt danh mục Thu nhập và Chi tiêu, hỗ trợ người dùng tạo thêm danh mục tùy chỉnh với biểu tượng và màu sắc riêng.
+- **Thao tác nhanh trên sổ giao dịch:** Vuốt sang phải để chỉnh sửa giao dịch, vuốt sang trái để xóa.
+
+### 2. Quản lý gói dịch vụ định kỳ (Subscriptions Hub)
+- Theo dõi các khoản chi phí cố định lặp lại: Netflix, Spotify, iCloud, tiền nhà, cước viễn thông, gym...
+- Tự động chuẩn hóa chi phí theo tháng và tính toán mức tiêu tốn ước tính theo năm.
+- Cảnh báo thời hạn thanh toán (hôm nay, sắp tới, quá hạn).
+- Đánh dấu đã thanh toán kỳ này để tự động chuyển kỳ kế tiếp và ghi nhận vào sổ thu chi.
+
+### 3. Chỉ số Safe-to-Spend (Hạn mức an toàn mỗi ngày)
+- Công thức tính toán:
+  $$\text{Safe-to-Spend} = \frac{\text{Tổng thu} - \text{Gói định kỳ} - \text{Quỹ tiết kiệm mục tiêu} - \text{Đã chi tiêu}}{\text{Số ngày còn lại trong tháng}}$$
+- Cung cấp hạn mức chi tiêu an toàn theo ngày để đảm bảo người dùng luôn đạt được mục tiêu tài chính cuối tháng.
+
+### 4. Báo cáo và biểu đồ phân tích
+- **Biểu đồ cột trực quan:** Theo dõi biến động chi tiêu theo tuần, theo các tuần trong tháng (chuẩn theo lịch thực tế), hoặc 12 tháng trong năm.
+- **Thống kê trung bình linh hoạt:** Tự động tính toán mức chi tiêu trung bình theo ngày, theo tuần hoặc theo tháng tương ứng với mốc thời gian đang xem.
+- **Phân bổ chi tiêu theo danh mục:** Biểu đồ thanh tỷ lệ phần trăm theo từng nhóm chi tiêu.
+
+### 5. Cài đặt và tùy biến cá nhân
+- **Màu nền giao diện:** Hỗ trợ 8 bảng màu tối: Zinc, OLED, Slate, Charcoal, Forest, Obsidian, Crimson, Arctic. Hiển thị dưới dạng vòng tròn màu trực quan.
+- **Đa tiền tệ:** Hỗ trợ VND (₫), USD ($), EUR (€), JPY (¥), GBP (£), KRW (₩), SGD (S$).
+- **Đa ngôn ngữ:** Hỗ trợ Tiếng Việt, English, Français, 日本語, 简体中文. Thay đổi ngôn ngữ có hiệu lực ngay lập tức trên toàn bộ ứng dụng.
+- **Quản lý dữ liệu:** Lưu trữ cục bộ với SQLite, hỗ trợ xóa sạch dữ liệu an toàn.
+
+---
+
+## Công nghệ sử dụng
 
 - **Framework:** Flutter (Dart 3.x)
-- **ML & Vision:** `google_mlkit_text_recognition: ^0.13.0`
-- **Camera & Image:** `camera: ^0.11.0`, `image_picker: ^1.1.2`
-- **Cơ sở dữ liệu:** `sqflite: ^2.4.1` (SQLite cục bộ 100%)
-- **Hệ thống thiết kế:** Tuân thủ `taste-skill` standards (.agents/skills)
+- **OCR Engine:** Google ML Kit Text Recognition (`google_mlkit_text_recognition`)
+- **Camera & Image:** Camera, Image Picker
+- **Cơ sở dữ liệu:** SQLite (`sqflite`)
+- **Quốc tế hóa:** Hỗ trợ đa ngôn ngữ và định dạng tiền tệ động (`intl`)
 
 ---
 
-## 📦 Đóng gói APK & Tối ưu dung lượng (GitHub Actions)
+## Đóng gói APK Release (GitHub Actions)
 
-Dự án đã tích hợp sẵn GitHub Actions workflow tự động biên dịch và tạo bản phát hành GitHub Release khi đẩy tag phiên bản:
+Dự án tích hợp GitHub Actions workflow tự động biên dịch và phát hành bản cài APK khi tạo tag phiên bản:
 
-1. **Bản siêu nhẹ Split ABI:** `cadence-arm64-v8a.apk` (**~16MB**, giảm hơn 65% dung lượng nhờ chia kiến trúc và bật R8 code shrinking).
-2. **Bản phổ thông:** `cadence-universal.apk` (tương thích mọi thiết bị).
+1. **Bản tối ưu dung lượng (Split ABI):** `cadence-arm64-v8a.apk` (giảm hơn 60% dung lượng nhờ phân tách kiến trúc CPU 64-bit).
+2. **Bản tương thích toàn diện:** `cadence-universal.apk` (tương thích mọi thiết bị Android).
 
 Cách kích hoạt phát hành bản mới:
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.1.4
+git push origin v1.1.4
 ```
-Máy chủ GitHub Actions sẽ tự động biên dịch và gắn sẵn link tải APK trực tiếp trong mục **Releases** của repo.
+Workflow sẽ tự động chạy kiểm thử, biên dịch APK và đính kèm file tải trực tiếp trong mục Releases trên GitHub.

@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/services/settings_service.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../subscriptions/models/subscription_item.dart';
 
@@ -17,6 +19,7 @@ class UpcomingBillsStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (upcomingSubs.isEmpty) return const SizedBox.shrink();
+    final currentTheme = SettingsService.instance.themeBackground;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -24,13 +27,13 @@ class UpcomingBillsStrip extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.warning),
-                SizedBox(width: 8),
+                const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.warning),
+                const SizedBox(width: 8),
                 Text(
-                  'Gói dịch vụ sắp đến hạn',
-                  style: TextStyle(
+                  tr('upcoming_bills'),
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -41,7 +44,7 @@ class UpcomingBillsStrip extends StatelessWidget {
             TextButton(
               onPressed: onViewAll,
               style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: const Text('Xem tất cả', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+              child: Text(tr('view_all'), style: const TextStyle(color: AppColors.textTertiary, fontSize: 12)),
             ),
           ],
         ),
@@ -59,10 +62,10 @@ class UpcomingBillsStrip extends StatelessWidget {
                 width: 170,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: currentTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: sub.isDueSoon ? AppColors.warning.withOpacity(0.4) : AppColors.border,
+                    color: sub.isDueSoon ? AppColors.warning.withOpacity(0.4) : currentTheme.border,
                     width: 1,
                   ),
                 ),
@@ -89,7 +92,7 @@ class UpcomingBillsStrip extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      CurrencyFormatter.formatVND(sub.amount),
+                      SettingsService.instance.formatCurrency(sub.amount),
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 13,
@@ -100,11 +103,13 @@ class UpcomingBillsStrip extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: sub.isDueSoon ? AppColors.warningSubtle : AppColors.surfaceElevated,
+                        color: currentTheme.surfaceElevated,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        DateFormatter.formatDaysUntil(sub.nextBillingDate),
+                        sub.daysUntilDue <= 0
+                            ? tr('due_today')
+                            : tr('days_remaining', {'days': '${sub.daysUntilDue}'}),
                         style: TextStyle(
                           color: sub.isDueSoon ? AppColors.warning : AppColors.textTertiary,
                           fontSize: 10,

@@ -70,18 +70,23 @@ jobs:
         with:
           name: Cadence ${{ github.ref_name }}
           body: |
-            ### 🚀 Bản phát hành Cadence ${{ github.ref_name }}
+            ### Ban phat hanh Cadence ${{ github.ref_name }}
             
-            #### 📦 Tải xuống APK:
-            - **`cadence-${{ github.ref_name }}-arm64-v8a.apk` (Khuyên dùng - Siêu nhẹ ~16MB)**: Tối ưu riêng cho các dòng smartphone Android 64-bit hiện đại (Samsung, Xiaomi, Pixel, Oppo, Realme...).
-            - **`cadence-${{ github.ref_name }}-universal.apk` (Bản phổ thông)**: Tương thích với tất cả các dòng thiết bị Android.
+            #### Tap tin APK:
+            - **cadence-${{ github.ref_name }}-arm64-v8a.apk (Khuyen dung - Toi uu dung luong)**: Toi uu cho cac dong thiet bi Android 64-bit hien dai.
+            - **cadence-${{ github.ref_name }}-universal.apk (Ban pho thong)**: Tuong thich voi moi thiet bi Android.
             
-            #### ✨ Điểm mới trong phiên bản này:
-            - Tối ưu dung lượng APK qua Split ABI AOT Release (giảm hơn 65% dung lượng).
-            - Giao diện "Ghi chép giao dịch" (Nhập tay) toàn màn hình mượt mà, phản hồi tức thì với haptic feedback và phím số nhanh.
-            - Khắc phục triệt để lỗi thông báo chớp tắt khi hủy chọn ảnh từ thư viện.
-            - Bổ sung trang **Cài Đặt**: Tùy chỉnh màu nền (Dark Zinc, OLED Black, Midnight Slate, Warm Charcoal), đổi loại tiền tệ (VND, USD, EUR, JPY), đổi ngôn ngữ.
-            - Bổ sung bộ lọc mốc thời gian (Tuần, Tháng, Năm) và biểu đồ cột trực quan phân tích biến động dòng tiền chi tiêu.
+            #### Chi tiet cap nhat:
+            - Cai dat giao dien: Bo sung 8 phong cach mau toi dang hinh tron tinh te, khong chu thich dai dong.
+            - Da ngon ngu: Ho tro Tieng Viet, English, Francais, Japanese, Chinese cap nhat tuc thi tren toan ung dung.
+            - Da tien te: Ho tro VND, USD, EUR, JPY, GBP, KRW, SGD.
+            - Du lieu mac dinh: Lam sach hoan toan du lieu mau, khoi tao co so du lieu trang thai rong.
+            - Cap nhat tuc thi: Dong bo hoa du lieu tuc thoi giua cac man hinh ma khong can thao tac lam moi.
+            - So giao dich: Vuot phai de sua giao dich, vuot trai de xoa giao dich.
+            - Quet hoa don: Ho tro phan loai hoa don mua hang (Chi tieu) hoac bill khach chuyen khoan (Thu nhap).
+            - Danh muc: Phan tach ro rang danh muc Thu va Chi, ho tro nguoi dung tao them danh muc ca nhan hoa.
+            - Tinh gon thao tac: Toi gian con duy nhat 1 nut them cho moi man hinh.
+            - Phan tich: Tinh toan bien dong tuan trong thang chinh xac theo lich thoi gian thuc; hien thi trung binh theo ngay, tuan hoac thang.
           draft: false
           prerelease: false
           files: release_apks/*.apk

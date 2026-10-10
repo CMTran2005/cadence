@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/app_data_notifier.dart';
 import '../../../core/services/settings_service.dart';
 import '../../scanner/presentation/camera_scanner_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -39,10 +41,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    AppDataNotifier.instance.addListener(_loadDashboardData);
+    SettingsService.instance.addListener(_onSettingsChanged);
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AppDataNotifier.instance.removeListener(_loadDashboardData);
+    SettingsService.instance.removeListener(_onSettingsChanged);
+    super.dispose();
   }
 
   Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
     final safe = await DatabaseHelper.instance.calculateSafeToSpendToday();
     final income = await DatabaseHelper.instance.getCurrentMonthIncome();
     final expense = await DatabaseHelper.instance.getCurrentMonthExpense();
@@ -50,7 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final allSubs = await DatabaseHelper.instance.getActiveSubscriptions();
     final recent = await DatabaseHelper.instance.getAllTransactions(limit: 6);
 
-    // Filter subs due in next 10 days
     final upcoming = allSubs.where((s) => s.daysUntilDue >= -2 && s.daysUntilDue <= 10).toList();
 
     if (mounted) {
@@ -79,56 +92,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _openQuickManualEntry() async {
     HapticFeedback.lightImpact();
-    final added = await ManualEntryScreen.navigateTo(context);
-    if (added == true) {
-      _loadDashboardData();
-    }
+    await ManualEntryScreen.navigateTo(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final currentTheme = SettingsService.instance.themeBackground;
 
-    return AnimatedBuilder(
-      animation: SettingsService.instance,
-      builder: (context, _) {
-        return Scaffold(
-          backgroundColor: currentTheme.background,
-          appBar: AppBar(
-            backgroundColor: currentTheme.background,
-            title: Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.income,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text('Cadence Finance'),
-              ],
+    return Scaffold(
+      backgroundColor: currentTheme.background,
+      appBar: AppBar(
+        backgroundColor: currentTheme.background,
+        title: Row(
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.income,
+              ),
             ),
-            actions: [
-              IconButton(
-                onPressed: _openCameraScanner,
-                icon: const Icon(Icons.document_scanner_outlined, color: AppColors.textPrimary),
-                tooltip: 'Quét hóa đơn',
-              ),
-              IconButton(
-                onPressed: () => SettingsScreen.navigateTo(context),
-                icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
-                tooltip: 'Cài đặt',
-              ),
-            ],
+            const SizedBox(width: 10),
+            Text(tr('app_name')),
+          ],
+        ),
+        actions: [
+          // Streamlined: only Settings action in Dashboard AppBar.
+          IconButton(
+            onPressed: () => SettingsScreen.navigateTo(context),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+            tooltip: tr('settings_title'),
           ),
-          body: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                  onRefresh: _loadDashboardData,
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadDashboardData,
               color: AppColors.textPrimary,
-              backgroundColor: AppColors.surface,
+              backgroundColor: currentTheme.surface,
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
@@ -141,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Dual Action Buttons (Quét hóa đơn OCR vs Nhập thủ công)
+                  // Dedicated Primary Action Buttons (Quét hóa đơn OCR vs Nhập tay)
                   Row(
                     children: [
                       Expanded(
@@ -149,9 +152,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _openCameraScanner,
                           icon: const Icon(Icons.document_scanner_rounded, size: 18),
-                          label: const Text(
-                            'Quét Hóa Đơn (OCR)',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          label: Text(
+                            tr('scan_receipt_ocr'),
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.textPrimary,
@@ -167,13 +170,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: OutlinedButton.icon(
                           onPressed: _openQuickManualEntry,
                           icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text(
-                            'Nhập Tay',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          label: Text(
+                            tr('manual_entry_btn'),
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.textPrimary,
-                            side: const BorderSide(color: AppColors.border),
+                            side: BorderSide(color: currentTheme.border),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
@@ -196,9 +199,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Giao dịch gần đây',
-                        style: TextStyle(
+                      Text(
+                        tr('recent_transactions'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
@@ -207,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       TextButton(
                         onPressed: widget.onNavigateToTransactions,
                         style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                        child: const Text('Xem tất cả', style: TextStyle(color: AppColors.textTertiary, fontSize: 13)),
+                        child: Text(tr('view_all'), style: const TextStyle(color: AppColors.textTertiary, fontSize: 13)),
                       ),
                     ],
                   ),
@@ -215,11 +218,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   if (_recentTx.isEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      padding: const EdgeInsets.symmetric(vertical: 36),
                       alignment: Alignment.center,
-                      child: const Text(
-                        'Chưa có giao dịch nào',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                      child: Text(
+                        tr('no_transactions'),
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
                       ),
                     )
                   else
@@ -230,7 +233,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           item: tx,
                           onDelete: () async {
                             await DatabaseHelper.instance.deleteTransaction(tx.id!);
-                            _loadDashboardData();
+                          },
+                          onEdit: () async {
+                            await ManualEntryScreen.navigateTo(context, existingItem: tx);
                           },
                         ),
                       );
@@ -238,8 +243,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-        );
-      },
     );
   }
 }

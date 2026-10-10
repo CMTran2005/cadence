@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/services/settings_service.dart';
 
 class SafeToSpendHero extends StatelessWidget {
   final double safeToSpendDaily;
@@ -21,14 +23,15 @@ class SafeToSpendHero extends StatelessWidget {
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final daysRemaining = (daysInMonth - now.day + 1).clamp(1, 31);
+    final currentTheme = SettingsService.instance.themeBackground;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: currentTheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: currentTheme.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,13 +40,13 @@ class SafeToSpendHero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.shield_outlined, size: 16, color: AppColors.income),
-                  SizedBox(width: 8),
+                  const Icon(Icons.shield_outlined, size: 16, color: AppColors.income),
+                  const SizedBox(width: 8),
                   Text(
-                    'An toàn để tiêu hôm nay',
-                    style: TextStyle(
+                    tr('safe_to_spend_today'),
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -54,12 +57,12 @@ class SafeToSpendHero extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: currentTheme.surfaceElevated,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: currentTheme.border),
                 ),
                 child: Text(
-                  'Còn $daysRemaining ngày trong tháng',
+                  tr('days_remaining', {'days': '$daysRemaining'}),
                   style: const TextStyle(
                     color: AppColors.textTertiary,
                     fontSize: 11,
@@ -73,7 +76,7 @@ class SafeToSpendHero extends StatelessWidget {
 
           // Main Big Metric (Safe-to-Spend per day)
           Text(
-            CurrencyFormatter.formatVND(safeToSpendDaily),
+            SettingsService.instance.formatCurrency(safeToSpendDaily),
             style: const TextStyle(
               fontSize: 34,
               fontWeight: FontWeight.w700,
@@ -83,12 +86,12 @@ class SafeToSpendHero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Hạn mức mỗi ngày để cuối tháng không bị âm quỹ tiết kiệm',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+          Text(
+            tr('safe_to_spend_desc'),
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
           ),
           const SizedBox(height: 20),
-          const Divider(color: AppColors.borderSubtle, height: 1),
+          Divider(color: currentTheme.border, height: 1),
           const SizedBox(height: 16),
 
           // Monthly In/Out Mini Bar
@@ -96,28 +99,25 @@ class SafeToSpendHero extends StatelessWidget {
             children: [
               Expanded(
                 child: _statColumn(
-                  label: 'Thu tháng này',
+                  label: tr('total_income'),
                   amount: monthlyIncome,
                   color: AppColors.income,
-                  isPositive: true,
                 ),
               ),
-              Container(width: 1, height: 32, color: AppColors.border),
+              Container(width: 1, height: 32, color: currentTheme.border),
               Expanded(
                 child: _statColumn(
-                  label: 'Đã chi tiêu',
+                  label: tr('spent'),
                   amount: monthlyExpense,
                   color: AppColors.expense,
-                  isPositive: false,
                 ),
               ),
-              Container(width: 1, height: 32, color: AppColors.border),
+              Container(width: 1, height: 32, color: currentTheme.border),
               Expanded(
                 child: _statColumn(
-                  label: 'Gói định kỳ',
+                  label: tr('recurring'),
                   amount: fixedSubTotal,
                   color: AppColors.accent,
-                  isPositive: false,
                 ),
               ),
             ],
@@ -131,7 +131,6 @@ class SafeToSpendHero extends StatelessWidget {
     required String label,
     required double amount,
     required Color color,
-    required bool isPositive,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -146,12 +145,12 @@ class SafeToSpendHero extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            CurrencyFormatter.formatCompact(amount),
-            style: TextStyle(
+            SettingsService.instance.formatCompactCurrency(amount),
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
         ],

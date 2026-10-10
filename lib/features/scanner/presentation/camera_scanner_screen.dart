@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../transactions/models/transaction_item.dart';
 import '../services/mlkit_ocr_service.dart';
 import 'receipt_review_dialog.dart';
@@ -93,7 +94,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
       final XFile photo = await _cameraController!.takePicture();
       await _processImage(photo.path);
     } catch (e) {
-      _showError('Lỗi chụp ảnh: $e');
+      _showError('Camera error: $e');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -107,29 +108,23 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
         maxHeight: 2048,
       );
       if (image == null) {
-        // User deliberately canceled picking image - cleanly return
         return;
       }
       if (mounted) setState(() => _isProcessing = true);
       await _processImage(image.path);
     } catch (e) {
       final errStr = e.toString().toLowerCase();
-      // Silently return if canceled by user or activity transition
       if (errStr.contains('cancel') || errStr.contains('cancelled') || errStr.contains('canceled') || errStr.contains('already_active')) {
         return;
       }
-      _showError('Không thể mở ảnh từ thư viện thiết bị');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  /// Pick a bundled sample receipt for instant testing
   Future<void> _pickSampleReceipt() async {
     try {
       setState(() => _isProcessing = true);
-
-      // Load bundled sample receipt to temp directory
       const assetPath = 'assets/sample_receipts/sample_winmart.jpg';
       final byteData = await rootBundle.load(assetPath);
       final tempDir = await getTemporaryDirectory();
@@ -138,7 +133,6 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
 
       await _processImage(tempFile.path);
     } catch (e) {
-      // If sample file not found in asset bundle, directly parse simulated text
       await _processFallbackSimulation();
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -168,7 +162,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Đã lưu giao dịch: ${savedTx.title}'),
+              content: Text(tr('scan_saved', {'title': savedTx.title})),
               backgroundColor: AppColors.income,
             ),
           );
@@ -176,7 +170,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
         }
       }
     } catch (e) {
-      _showError('Không thể bóc tách hóa đơn: $e');
+      _showError(tr('scan_error', {'error': '$e'}));
     }
   }
 
@@ -205,15 +199,15 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
               child: CameraPreview(_cameraController!),
             )
           else
-            const Center(
+            Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.textTertiary),
-                  SizedBox(height: 12),
+                  const Icon(Icons.camera_alt_outlined, size: 48, color: AppColors.textTertiary),
+                  const SizedBox(height: 12),
                   Text(
-                    'Đang kết nối camera...',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    tr('connecting_camera'),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                 ],
               ),
@@ -232,7 +226,6 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                   ),
                   child: Stack(
                     children: [
-                      // Top guide text
                       Positioned(
                         top: 16,
                         left: 0,
@@ -244,9 +237,9 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                               color: Colors.black.withOpacity(0.6),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Text(
-                              'Căn chỉnh hóa đơn vào khung',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            child: Text(
+                              tr('scan_receipt'),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           ),
                         ),
@@ -274,7 +267,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                 TextButton.icon(
                   onPressed: _pickSampleReceipt,
                   icon: const Icon(Icons.receipt_long, size: 16, color: AppColors.warning),
-                  label: const Text('Thử bill mẫu', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  label: Text(tr('sample_bill'), style: const TextStyle(color: Colors.white, fontSize: 13)),
                   style: TextButton.styleFrom(
                     backgroundColor: Colors.black.withOpacity(0.6),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -292,7 +285,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
             ),
           ),
 
-          // Bottom Controls (Gallery, Shutter, Presets)
+          // Bottom Controls (Gallery, Shutter, Manual Entry)
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 20,
             left: 0,
@@ -302,13 +295,12 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Gallery Button
                     IconButton(
                       onPressed: _isProcessing ? null : _pickFromGallery,
                       icon: const Icon(Icons.photo_library_outlined, size: 28, color: Colors.white),
+                      tooltip: tr('pick_gallery'),
                     ),
 
-                    // Shutter Button
                     GestureDetector(
                       onTap: _isProcessing ? null : _captureAndScan,
                       child: Container(
@@ -331,38 +323,27 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                       ),
                     ),
 
-                    // Manual Fallback button
                     IconButton(
                       onPressed: () => Navigator.of(context).pop('MANUAL'),
                       icon: const Icon(Icons.edit_note_rounded, size: 30, color: Colors.white),
+                      tooltip: tr('manual_entry'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'On-device ML Kit OCR • Tự động nhận diện số tiền & nơi bán',
+                  'On-device ML Kit OCR',
                   style: TextStyle(color: AppColors.textTertiary, fontSize: 11),
                 ),
               ],
             ),
           ),
 
-          // Processing Indicator
           if (_isProcessing)
             Container(
               color: Colors.black.withOpacity(0.7),
               child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text(
-                      'Đang phân tích hóa đơn...',
-                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
+                child: CircularProgressIndicator(color: Colors.white),
               ),
             ),
         ],

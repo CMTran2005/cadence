@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/services/settings_service.dart';
 
 class ChartDataPoint {
   final String label;
@@ -18,12 +20,14 @@ class SpendingBarChart extends StatefulWidget {
   final List<ChartDataPoint> dataPoints;
   final String title;
   final String periodLabel;
+  final String averageUnitLabel;
 
   const SpendingBarChart({
     super.key,
     required this.dataPoints,
     required this.title,
     required this.periodLabel,
+    required this.averageUnitLabel,
   });
 
   @override
@@ -39,9 +43,9 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
       return const SizedBox.shrink();
     }
 
+    final currentTheme = SettingsService.instance.themeBackground;
     final maxValue = widget.dataPoints.map((e) => e.value).fold(0.0, (prev, elem) => elem > prev ? elem : prev);
     final totalSpent = widget.dataPoints.map((e) => e.value).fold(0.0, (prev, elem) => prev + elem);
-    final avgSpent = widget.dataPoints.isNotEmpty ? totalSpent / widget.dataPoints.length : 0.0;
 
     final selectedPoint = _selectedIndex != null && _selectedIndex! < widget.dataPoints.length
         ? widget.dataPoints[_selectedIndex!]
@@ -50,9 +54,9 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: currentTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: currentTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,8 +94,8 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                 children: [
                   Text(
                     selectedPoint != null
-                        ? CurrencyFormatter.format(selectedPoint.value)
-                        : CurrencyFormatter.format(totalSpent),
+                        ? SettingsService.instance.formatCurrency(selectedPoint.value)
+                        : SettingsService.instance.formatCurrency(totalSpent),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -103,7 +107,7 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                   Text(
                     selectedPoint != null
                         ? (selectedPoint.tooltipDetail ?? selectedPoint.label)
-                        : 'Tổng chi kỳ này',
+                        : tr('total_spent_period'),
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textTertiary,
@@ -154,14 +158,14 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                                       ? AppColors.textPrimary
                                       : isPeak
                                           ? AppColors.expense
-                                          : (pt.value > 0 ? AppColors.accent.withOpacity(0.75) : AppColors.surfaceElevated),
+                                          : (pt.value > 0 ? AppColors.accent.withOpacity(0.75) : currentTheme.surfaceElevated),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isSelected
                                         ? Colors.white
                                         : isPeak
                                             ? AppColors.expense
-                                            : AppColors.border,
+                                            : currentTheme.border,
                                     width: isSelected ? 1.5 : 1,
                                   ),
                                 ),
@@ -191,7 +195,7 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
 
           const SizedBox(height: 14),
 
-          // Footer Legend: Average and Tap prompt
+          // Footer Legend: Peak indicator and Dynamic Average Unit
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -199,11 +203,11 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                 children: [
                   Container(width: 8, height: 8, decoration: BoxDecoration(color: AppColors.expense, borderRadius: BorderRadius.circular(2))),
                   const SizedBox(width: 6),
-                  const Text('Điểm chi cao nhất', style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+                  Text(tr('peak_spending'), style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
                 ],
               ),
               Text(
-                'TB: ${CurrencyFormatter.formatCompact(avgSpent)} / mốc',
+                widget.averageUnitLabel,
                 style: const TextStyle(color: AppColors.textTertiary, fontSize: 11, fontFeatures: [FontFeature.tabularFigures()]),
               ),
             ],
