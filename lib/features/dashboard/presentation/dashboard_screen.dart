@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/database/database_helper.dart';
+import '../../../core/services/settings_service.dart';
 import '../../scanner/presentation/camera_scanner_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../../subscriptions/models/subscription_item.dart';
 import '../../transactions/models/transaction_item.dart';
-import '../../transactions/presentation/widgets/quick_manual_entry_sheet.dart';
+import '../../transactions/presentation/manual_entry_screen.dart';
 import '../../transactions/presentation/widgets/transaction_card.dart';
 import 'widgets/safe_to_spend_hero.dart';
 import 'widgets/upcoming_bills_strip.dart';
@@ -75,7 +78,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openQuickManualEntry() async {
-    final added = await QuickManualEntrySheet.show(context);
+    HapticFeedback.lightImpact();
+    final added = await ManualEntryScreen.navigateTo(context);
     if (added == true) {
       _loadDashboardData();
     }
@@ -83,35 +87,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.income,
-              ),
+    final currentTheme = SettingsService.instance.themeBackground;
+
+    return AnimatedBuilder(
+      animation: SettingsService.instance,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: currentTheme.background,
+          appBar: AppBar(
+            backgroundColor: currentTheme.background,
+            title: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.income,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text('Cadence Finance'),
+              ],
             ),
-            const SizedBox(width: 10),
-            const Text('Cadence Finance'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: _openCameraScanner,
-            icon: const Icon(Icons.document_scanner_outlined, color: AppColors.textPrimary),
-            tooltip: 'Quét hóa đơn',
+            actions: [
+              IconButton(
+                onPressed: _openCameraScanner,
+                icon: const Icon(Icons.document_scanner_outlined, color: AppColors.textPrimary),
+                tooltip: 'Quét hóa đơn',
+              ),
+              IconButton(
+                onPressed: () => SettingsScreen.navigateTo(context),
+                icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+                tooltip: 'Cài đặt',
+              ),
+            ],
           ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _loadDashboardData,
               color: AppColors.textPrimary,
               backgroundColor: AppColors.surface,
               child: ListView(
@@ -223,6 +238,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+        );
+      },
     );
   }
 }

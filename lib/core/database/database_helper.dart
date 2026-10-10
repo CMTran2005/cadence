@@ -202,6 +202,8 @@ class DatabaseHelper {
     CategoryType? category,
     String? searchQuery,
     int? limit,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final db = await database;
     String? whereClause;
@@ -228,6 +230,26 @@ class DatabaseHelper {
         whereClause = 'title LIKE ?';
       }
       whereArgs.add('%$searchQuery%');
+    }
+
+    if (startDate != null) {
+      final startMs = startDate.millisecondsSinceEpoch;
+      if (whereClause != null) {
+        whereClause += ' AND transactionDate >= ?';
+      } else {
+        whereClause = 'transactionDate >= ?';
+      }
+      whereArgs.add(startMs);
+    }
+
+    if (endDate != null) {
+      final endMs = endDate.millisecondsSinceEpoch;
+      if (whereClause != null) {
+        whereClause += ' AND transactionDate <= ?';
+      } else {
+        whereClause = 'transactionDate <= ?';
+      }
+      whereArgs.add(endMs);
     }
 
     final maps = await db.query(
@@ -400,5 +422,149 @@ class DatabaseHelper {
       map[cat] = total;
     }
     return map;
+  }
+
+  /// Category breakdown for any date range
+  Future<Map<CategoryType, double>> getCategoryExpenseBreakdownForRange({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final db = await database;
+    final startMs = startDate.millisecondsSinceEpoch;
+    final endMs = endDate.millisecondsSinceEpoch;
+
+    final results = await db.rawQuery('''
+      SELECT category, SUM(amount) as total
+      FROM $tableTransactions
+      WHERE type = 'EXPENSE' AND transactionDate >= ? AND transactionDate <= ?
+      GROUP BY category
+      ORDER BY total DESC
+    ''', [startMs, endMs]);
+
+    final Map<CategoryType, double> map = {};
+    for (final row in results) {
+      final cat = CategoryType.fromString(row['category'] as String?);
+      final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+      map[cat] = total;
+    }
+    return map;
+  }
+
+  /// Get income and expense summary for any given date range
+  Future<Map<String, double>> getPeriodSummary({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final db = await database;
+    final startMs = startDate.millisecondsSinceEpoch;
+    final endMs = endDate.millisecondsSinceEpoch;
+
+    final incomeRes = await db.rawQuery('''
+      SELECT SUM(amount) as total
+      FROM $tableTransactions
+      WHERE type = 'INCOME' AND transactionDate >= ? AND transactionDate <= ?
+    ''', [startMs, endMs]);
+
+    final expenseRes = await db.rawQuery('''
+      SELECT SUM(amount) as total
+      FROM $tableTransactions
+      WHERE type = 'EXPENSE' AND transactionDate >= ? AND transactionDate <= ?
+    ''', [startMs, endMs]);
+
+    final income = (incomeRes.first['total'] as num?)?.toDouble() ?? 0.0;
+    final expense = (expenseRes.first['total'] as num?)?.toDouble() ?? 0.0;
+
+    return {'income': income, 'expense': expense};
+  }
+
+  /// Get daily expense totals for a list of days
+  Future<List<double>> getDailyExpensesForRange({
+    required DateTime startDate,
+    required int numDays,
+  }) async {
+    final db = await database;
+    final List<double> dailyTotals = [];
+
+    for (int i = 0; i < numDays; i++) {
+      final dayStart = DateTime(startDate.year, startDate.month, startDate.day + i);
+      final dayEnd = DateTime(dayStart.year, dayStart.month, dayStart.day, 23, 59, 59, 999);
+
+      final res = await db.rawQuery('''
+        SELECT SUM(amount) as total
+        FROM $tableTransactions
+        WHERE type = 'EXPENSE' AND transactionDate >= ? AND transactionDate <= ?
+      ''', [dayStart.millisecondsSinceEpoch, dayEnd.millisecondsSinceEpoch]);
+
+      final total = (res.first['total'] as num?)?.toDouble() ?? 0.0;
+      dailyTotals.add(total);
+    }
+
+    return dailyTotals;
+  }
+
+  /// Get 12 months expense totals for a given year (Jan to Dec)
+  Future<List<double>> getMonthlyExpensesForYear(int year) async {
+    final db = await database;
+    final List<double> monthlyTotals = [];
+
+    for (int m = 1; m <= 12; m++) {
+      final monthStart = DateTime(year, m, 1);
+      final monthEnd = DateTime(year, m + 1, 0, 23, 59, 59, 999);
+
+      final res = await db.rawQuery('''
+        SELECT SUM(amount) as total
+        FROM $tableTransactions
+        WHERE type = 'EXPENSE' AND transactionDate >= ? AND transactionDate <= ?
+      ''', [monthStart.millisecondsSinceEpoch, monthEnd.millisecondsSinceEpoch]);
+
+      final total = (res.first['total'] as num?)?.toDouble() ?? 0.0;
+      monthlyTotals.add(total);
+    }
+
+    return monthlyTotals;
+  }
+
+  /// Get all unique years present in transactions
+  Future<List<int>> getAvailableYears() async {
+    final db = await database;
+    final results = await db.rawQuery('''
+      SELECT transactionDate FROM $tableTransactions ORDER BY transactionDate DESC
+    ''');
+
+    final Set<int> years = {DateTime.now().year};
+    for (final row in results) {
+      final ms = row['transactionDate'] as int?;
+      if (ms != null) {
+        years.add(DateTime.fromMillisecondsSinceEpoch(ms).year);
+      }
+    }
+
+    final list = years.toList()..sort((a, b) => b.compareTo(a));
+    return list;
+  }
+
+  // ================= SETTINGS =================
+
+  Future<String?> getSetting(String key, {String? defaultValue}) async {
+    final db = await database;
+    final res = await db.query(
+      tableSettings,
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return res.first['value'] as String?;
+    }
+    return defaultValue;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    final db = await database;
+    await db.insert(
+      tableSettings,
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

@@ -36,16 +36,38 @@ jobs:
       - name: Run Tests
         run: flutter test
 
-      - name: Build Android APK
-        run: flutter build apk --debug
+      - name: Build Optimized Release APKs (Split-per-ABI & Universal)
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
 
-      - name: Create GitHub Release & Upload APK
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p release_apks
+          TAG_NAME="${{ github.ref_name }}"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_apks/cadence-${TAG_NAME}-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release_apks/cadence-${TAG_NAME}-universal.apk
+
+      - name: Create GitHub Release & Upload APKs
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: Cadence ${{ github.ref_name }}
+          body: |
+            ### 🚀 Bản phát hành Cadence ${{ github.ref_name }}
+            
+            #### 📦 Tải xuống APK:
+            - **`cadence-${{ github.ref_name }}-arm64-v8a.apk` (Khuyên dùng - Siêu nhẹ ~16MB)**: Tối ưu riêng cho các dòng smartphone Android 64-bit hiện đại (Samsung, Xiaomi, Pixel, Oppo...).
+            - **`cadence-${{ github.ref_name }}-universal.apk` (Bản phổ thông)**: Tương thích với tất cả các dòng thiết bị Android.
+            
+            #### ✨ Điểm mới trong phiên bản này:
+            - Tối ưu dung lượng APK qua R8 code shrinking & Split ABI (giảm hơn 65% dung lượng).
+            - Giao diện "Ghi chép giao dịch" (Nhập tay) toàn màn hình mượt mà, phản hồi tức thì với haptic feedback và phím số nhanh.
+            - Khắc phục triệt để lỗi thông báo chớp tắt khi hủy chọn ảnh từ thư viện.
+            - Bổ sung trang **Cài Đặt**: Tùy chỉnh màu nền (Dark Zinc, OLED Black, Midnight Slate, Warm Charcoal), đổi loại tiền tệ (VND, USD, EUR, JPY), đổi ngôn ngữ.
+            - Bổ sung bộ lọc mốc thời gian (Tuần, Tháng, Năm) và biểu đồ cột trực quan phân tích biến động dòng tiền chi tiêu.
           draft: false
           prerelease: false
-          files: build/app/outputs/flutter-apk/app-debug.apk
+          files: release_apks/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,6 +8,7 @@ class DateFormatter {
   static String formatDate(DateTime date) => _ddMMyyyy.format(date);
   static String formatShortDate(DateTime date) => _ddMM.format(date);
   static String formatTime(DateTime date) => _hhmm.format(date);
+  static String formatVietnameseDate(DateTime date) => 'Ngày ${date.day}/${date.month}/${date.year}';
 
   /// Friendly relative date: "Hôm nay", "Hôm qua", "2 ngày trước", "dd/MM"
   static String formatRelative(DateTime date) {

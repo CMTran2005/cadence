@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/constants/app_colors.dart';
+import 'core/services/settings_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/analytics/presentation/analytics_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/subscriptions/presentation/subscriptions_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SettingsService.instance.init();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -25,11 +28,16 @@ class CadenceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Cadence',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const MainNavigationShell(),
+    return AnimatedBuilder(
+      animation: SettingsService.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Cadence',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.getTheme(SettingsService.instance.themeBackground),
+          home: const MainNavigationShell(),
+        );
+      },
     );
   }
 }
@@ -50,6 +58,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final currentTheme = SettingsService.instance.themeBackground;
+
     final screens = [
       DashboardScreen(
         onNavigateToSubscriptions: () => _navigateToIndex(1),
@@ -66,14 +76,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         children: screens,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+        decoration: BoxDecoration(
+          color: currentTheme.surface,
+          border: Border(top: BorderSide(color: currentTheme.border, width: 1)),
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,
           backgroundColor: Colors.transparent,
-          indicatorColor: AppColors.surfaceElevated,
+          indicatorColor: currentTheme.surfaceElevated,
           surfaceTintColor: Colors.transparent,
           height: 64,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,

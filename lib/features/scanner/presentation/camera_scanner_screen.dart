@@ -46,9 +46,10 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-    if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       _cameraController?.dispose();
+      _cameraController = null;
+      if (mounted) setState(() => _isCameraInitialized = false);
     } else if (state == AppLifecycleState.resumed) {
       _initCamera();
     }
@@ -100,13 +101,24 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
 
   Future<void> _pickFromGallery() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        setState(() => _isProcessing = true);
-        await _processImage(image.path);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+      if (image == null) {
+        // User deliberately canceled picking image - cleanly return
+        return;
       }
+      if (mounted) setState(() => _isProcessing = true);
+      await _processImage(image.path);
     } catch (e) {
-      _showError('Lỗi chọn ảnh: $e');
+      final errStr = e.toString().toLowerCase();
+      // Silently return if canceled by user or activity transition
+      if (errStr.contains('cancel') || errStr.contains('cancelled') || errStr.contains('canceled') || errStr.contains('already_active')) {
+        return;
+      }
+      _showError('Không thể mở ảnh từ thư viện thiết bị');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -170,8 +182,14 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
 
   void _showError(String msg) {
     if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.expense),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.expense,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
