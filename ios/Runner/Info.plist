@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Cadence cần quyền truy cập Camera để quét và nhận diện hóa đơn (OCR).</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cadence cần quyền truy cập Thư viện ảnh để chọn ảnh hóa đơn cần bóc tách.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cadence cần quyền Micro khi sử dụng tính năng camera.</string>
 </dict>
 </plist>
