@@ -11,6 +11,7 @@ import '../../subscriptions/models/subscription_item.dart';
 import '../../transactions/models/transaction_item.dart';
 import '../../transactions/presentation/manual_entry_screen.dart';
 import '../../transactions/presentation/widgets/transaction_card.dart';
+import 'widgets/monthly_budget_card.dart';
 import 'widgets/safe_to_spend_hero.dart';
 import 'widgets/upcoming_bills_strip.dart';
 
@@ -141,6 +142,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     monthlyIncome: _monthlyIncome,
                     monthlyExpense: _monthlyExpense,
                     fixedSubTotal: _fixedSubTotal,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Monthly Budget & Spending Limit Card
+                  MonthlyBudgetCard(
+                    currentExpense: _monthlyExpense,
+                    onBudgetChanged: _loadDashboardData,
                   ),
                   const SizedBox(height: 18),
 

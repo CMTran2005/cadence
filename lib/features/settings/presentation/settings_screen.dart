@@ -37,24 +37,32 @@ class SettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             children: [
-              // SECTION 1: GIAO DIỆN & NỀN (Vòng tròn màu tinh gọn)
+              // SECTION 1: GIAO DIỆN & NỀN (Lưới 4 màu 1 hàng, căn đều từ trái)
               _buildSectionHeader(
                 title: tr('appearance_theme'),
                 subtitle: tr('appearance_subtitle'),
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: currentTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: currentTheme.border),
                 ),
-                child: Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  alignment: WrapAlignment.spaceAround,
-                  children: AppThemeBackground.values.map((bg) {
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.82,
+                  ),
+                  itemCount: AppThemeBackground.values.length,
+                  itemBuilder: (context, index) {
+                    final bg = AppThemeBackground.values[index];
                     final isSelected = bg == currentTheme;
                     return GestureDetector(
                       onTap: () => settings.setThemeBackground(bg),
@@ -62,8 +70,8 @@ class SettingsScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 50,
-                            height: 50,
+                            width: 46,
+                            height: 46,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
@@ -78,7 +86,7 @@ class SettingsScreen extends StatelessWidget {
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withValues(alpha: 0.2),
                                         blurRadius: 8,
                                         spreadRadius: 1,
                                       ),
@@ -87,15 +95,15 @@ class SettingsScreen extends StatelessWidget {
                             ),
                             child: Center(
                               child: Container(
-                                width: 22,
-                                height: 22,
+                                width: 20,
+                                height: 20,
                                 decoration: BoxDecoration(
                                   color: bg.surface,
                                   shape: BoxShape.circle,
                                   border: Border.all(color: bg.border),
                                 ),
                                 child: isSelected
-                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                    ? const Icon(Icons.check, size: 13, color: Colors.white)
                                     : null,
                               ),
                             ),
@@ -103,50 +111,57 @@ class SettingsScreen extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             bg.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               color: isSelected ? AppColors.textPrimary : AppColors.textTertiary,
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     );
-                  }).toList(),
+                  },
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // SECTION 2: ĐƠN VỊ TIỀN TỆ
+              // SECTION 2: ĐƠN VỊ TIỀN TỆ (Dropdown gọn gàng)
               _buildSectionHeader(
                 title: tr('display_currency'),
                 subtitle: tr('currency_subtitle'),
               ),
               const SizedBox(height: 10),
               Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: currentTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: currentTheme.border),
                 ),
-                child: Column(
-                  children: AppCurrency.values.map((curr) {
-                    final isSelected = curr == currentCurr;
-                    return InkWell(
-                      onTap: () => settings.setCurrency(curr),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<AppCurrency>(
+                    value: currentCurr,
+                    isExpanded: true,
+                    dropdownColor: currentTheme.surfaceElevated,
+                    borderRadius: BorderRadius.circular(16),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                    items: AppCurrency.values.map((curr) {
+                      final isSelected = curr == currentCurr;
+                      return DropdownMenuItem<AppCurrency>(
+                        value: curr,
                         child: Row(
                           children: [
                             Container(
-                              width: 36,
-                              height: 36,
+                              width: 32,
+                              height: 32,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: currentTheme.surfaceElevated,
-                                borderRadius: BorderRadius.circular(10),
+                                color: currentTheme.surface,
+                                borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: currentTheme.border),
                               ),
                               child: Text(
@@ -154,88 +169,87 @@ class SettingsScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${curr.code} (${curr.symbol})',
-                                    style: TextStyle(
-                                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    curr.name,
-                                    style: const TextStyle(
-                                      color: AppColors.textTertiary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                '${curr.code} - ${curr.name}',
+                                style: TextStyle(
+                                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                             if (isSelected)
-                              const Icon(Icons.check_circle_rounded, color: AppColors.income, size: 20)
-                            else
-                              const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textTertiary, size: 20),
+                              const Icon(Icons.check_rounded, color: AppColors.income, size: 18),
                           ],
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) settings.setCurrency(val);
+                    },
+                  ),
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // SECTION 3: NGÔN NGỮ
+              // SECTION 3: NGÔN NGỮ (Dropdown gọn gàng)
               _buildSectionHeader(
                 title: tr('language'),
                 subtitle: tr('language_subtitle'),
               ),
               const SizedBox(height: 10),
               Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: currentTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: currentTheme.border),
                 ),
-                child: Column(
-                  children: AppLanguage.values.map((lang) {
-                    final isSelected = lang == currentLang;
-                    return InkWell(
-                      onTap: () => settings.setLanguage(lang),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<AppLanguage>(
+                    value: currentLang,
+                    isExpanded: true,
+                    dropdownColor: currentTheme.surfaceElevated,
+                    borderRadius: BorderRadius.circular(16),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                    items: AppLanguage.values.map((lang) {
+                      final isSelected = lang == currentLang;
+                      return DropdownMenuItem<AppLanguage>(
+                        value: lang,
                         child: Row(
                           children: [
                             Container(
-                              width: 36,
-                              height: 36,
+                              width: 32,
+                              height: 32,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: isSelected ? AppColors.income.withOpacity(0.15) : currentTheme.surfaceElevated,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: isSelected ? AppColors.income.withOpacity(0.3) : currentTheme.border),
+                                color: isSelected
+                                    ? AppColors.income.withValues(alpha: 0.15)
+                                    : currentTheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.income.withValues(alpha: 0.3)
+                                      : currentTheme.border,
+                                ),
                               ),
                               child: Text(
                                 lang.shortCode,
                                 style: TextStyle(
                                   color: isSelected ? AppColors.income : AppColors.textPrimary,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 13,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 lang.label,
@@ -247,14 +261,15 @@ class SettingsScreen extends StatelessWidget {
                               ),
                             ),
                             if (isSelected)
-                              const Icon(Icons.check_circle_rounded, color: AppColors.income, size: 20)
-                            else
-                              const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textTertiary, size: 20),
+                              const Icon(Icons.check_rounded, color: AppColors.income, size: 18),
                           ],
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) settings.setLanguage(val);
+                    },
+                  ),
                 ),
               ),
 
@@ -276,7 +291,37 @@ class SettingsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoRow(tr('version'), '1.1.4 (Clean & Optimized)'),
+                    _buildInfoRow(tr('version'), '1.1.5 (Clean & Optimized)'),
+                    const Divider(height: 24),
+                    InkWell(
+                      onTap: () => _editBudgetDialog(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(tr('monthly_budget'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                            Row(
+                              children: [
+                                Text(
+                                  settings.monthlyBudget > 0
+                                      ? settings.formatCurrency(settings.monthlyBudget)
+                                      : tr('set_budget'),
+                                  style: TextStyle(
+                                    color: settings.monthlyBudget > 0 ? AppColors.income : AppColors.textTertiary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textTertiary),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const Divider(height: 24),
                     _buildInfoRow(tr('architecture'), tr('architecture_value')),
                     const Divider(height: 24),
@@ -377,6 +422,53 @@ class SettingsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             child: Text(tr('delete')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editBudgetDialog(BuildContext context) {
+    final settings = SettingsService.instance;
+    final controller = TextEditingController(
+      text: settings.monthlyBudget > 0 ? settings.monthlyBudget.toStringAsFixed(0) : '',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: settings.themeBackground.surface,
+        title: Text(tr('monthly_budget'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+          decoration: InputDecoration(
+            hintText: tr('enter_budget_hint'),
+            prefixText: '${settings.currency.symbol} ',
+          ),
+        ),
+        actions: [
+          if (settings.monthlyBudget > 0)
+            TextButton(
+              onPressed: () async {
+                Navigator.of(ctx).pop();
+                await settings.setMonthlyBudget(0.0);
+              },
+              child: Text(tr('clear_all_data'), style: const TextStyle(color: AppColors.expense)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(tr('cancel'), style: const TextStyle(color: AppColors.textTertiary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final raw = controller.text.replaceAll(RegExp(r'[^0-9.]'), '');
+              final parsed = double.tryParse(raw) ?? 0.0;
+              Navigator.of(ctx).pop();
+              await settings.setMonthlyBudget(parsed);
+            },
+            child: Text(tr('save')),
           ),
         ],
       ),

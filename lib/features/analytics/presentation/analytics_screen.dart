@@ -6,6 +6,7 @@ import '../../../core/database/database_helper.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/services/app_data_notifier.dart';
 import '../../../core/services/settings_service.dart';
+import 'widgets/category_donut_chart.dart';
 import 'widgets/spending_bar_chart.dart';
 
 enum AnalyticsPeriod {
@@ -38,6 +39,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   double _income = 0.0;
   double _expense = 0.0;
+  double _prevExpense = 0.0;
+  bool _hasPrevData = false;
   Map<CategoryType, double> _categoryExpenses = {};
   List<ChartDataPoint> _chartData = [];
   String _averageUnitLabel = '';
@@ -148,6 +151,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       endDate: endDate,
     );
 
+    // Calculate previous period for month-over-month / period-over-period comparison
+    DateTime prevStart;
+    DateTime prevEnd;
+    if (_selectedPeriod == AnalyticsPeriod.week) {
+      prevStart = startDate.subtract(const Duration(days: 7));
+      prevEnd = endDate.subtract(const Duration(days: 7));
+    } else if (_selectedPeriod == AnalyticsPeriod.month) {
+      final prevM = m == 1 ? 12 : m - 1;
+      final prevY = m == 1 ? y - 1 : y;
+      final prevLastDay = DateTime(prevY, prevM + 1, 0).day;
+      prevStart = DateTime(prevY, prevM, 1);
+      prevEnd = DateTime(prevY, prevM, prevLastDay, 23, 59, 59, 999);
+    } else {
+      prevStart = DateTime(y - 1, 1, 1);
+      prevEnd = DateTime(y - 1, 12, 31, 23, 59, 59, 999);
+    }
+
+    final prevSummary = await DatabaseHelper.instance.getPeriodSummary(
+      startDate: prevStart,
+      endDate: prevEnd,
+    );
+    final prevExp = prevSummary['expense'] ?? 0.0;
+    final hasPrev = prevExp > 0 || (prevSummary['income'] ?? 0.0) > 0;
+
     final totalSpent = chartPoints.map((e) => e.value).fold(0.0, (prev, elem) => prev + elem);
     final avgSpent = chartPoints.isNotEmpty ? totalSpent / chartPoints.length : 0.0;
     final compactAvg = SettingsService.instance.formatCompactCurrency(avgSpent);
@@ -165,6 +192,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       setState(() {
         _income = summary['income'] ?? 0.0;
         _expense = summary['expense'] ?? 0.0;
+        _prevExpense = prevExp;
+        _hasPrevData = hasPrev;
         _categoryExpenses = categories;
         _chartData = chartPoints;
         _averageUnitLabel = avgLabel;
@@ -417,6 +446,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
                   const SizedBox(height: 16),
 
+                  // Period-over-Period Comparison Card (Biến động so với kỳ trước)
+                  _buildComparisonCard(currentTheme),
+
+                  const SizedBox(height: 16),
+
                   // Spending Bar Chart
                   SpendingBarChart(
                     dataPoints: _chartData,
@@ -427,7 +461,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Category Breakdown
+                  // Category Breakdown & Interactive Donut Chart
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -438,16 +472,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          tr('category_breakdown'),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            color: AppColors.textTertiary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              tr('category_breakdown'),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                            Text(
+                              '${_categoryExpenses.length} ${tr('category')}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
+
+                        // Interactive Donut Chart
+                        CategoryDonutChart(
+                          categoryExpenses: _categoryExpenses,
+                          totalExpense: _expense,
+                        ),
+
+                        if (_categoryExpenses.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          Divider(height: 1, color: currentTheme.border),
+                          const SizedBox(height: 16),
+                        ],
                         if (_categoryExpenses.isEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -526,4 +584,104 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
     );
   }
+
+  Widget _buildComparisonCard(AppThemeBackground currentTheme) {
+    final diffAmount = _expense - _prevExpense;
+    final diffPercent = _prevExpense > 0 ? ((diffAmount / _prevExpense) * 100) : 0.0;
+
+    Color compColor;
+    IconData compIcon;
+    String compTitle;
+    String compSubtitle;
+
+    final periodWord = _selectedPeriod == AnalyticsPeriod.month
+        ? tr('period_month')
+        : (_selectedPeriod == AnalyticsPeriod.week ? tr('period_week') : tr('period_year'));
+
+    if (!_hasPrevData && _expense == 0) {
+      compColor = AppColors.textTertiary;
+      compIcon = Icons.info_outline_rounded;
+      compTitle = tr('first_period_recorded');
+      compSubtitle = tr('no_data_period');
+    } else if (diffAmount < 0) {
+      // Spent less -> Saved money!
+      compColor = AppColors.income;
+      compIcon = Icons.trending_down_rounded;
+      compTitle = tr('spent_less_than', {
+        'amount': SettingsService.instance.formatCurrency(diffAmount.abs()),
+        'percent': diffPercent.abs().toStringAsFixed(1),
+      });
+      compSubtitle = '${tr('spent')}: ${SettingsService.instance.formatCurrency(_prevExpense)} (${tr('prev_period_ref')})';
+    } else if (diffAmount > 0) {
+      // Spent more -> Increased expense
+      compColor = const Color(0xFFF59E0B);
+      compIcon = Icons.trending_up_rounded;
+      compTitle = tr('spent_more_than', {
+        'amount': SettingsService.instance.formatCurrency(diffAmount),
+        'percent': diffPercent.abs().toStringAsFixed(1),
+      });
+      compSubtitle = '${tr('spent')}: ${SettingsService.instance.formatCurrency(_prevExpense)} (${tr('prev_period_ref')})';
+    } else {
+      compColor = AppColors.textSecondary;
+      compIcon = Icons.trending_flat_rounded;
+      compTitle = tr('spent_same');
+      compSubtitle = '${tr('spent')}: ${SettingsService.instance.formatCurrency(_prevExpense)}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: currentTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: currentTheme.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: compColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(compIcon, size: 20, color: compColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('period_comparison'),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  compTitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: compColor,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  compSubtitle,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

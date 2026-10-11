@@ -77,16 +77,12 @@ jobs:
             - **cadence-${{ github.ref_name }}-universal.apk (Ban pho thong)**: Tuong thich voi moi thiet bi Android.
             
             #### Chi tiet cap nhat:
-            - Cai dat giao dien: Bo sung 8 phong cach mau toi dang hinh tron tinh te, khong chu thich dai dong.
-            - Da ngon ngu: Ho tro Tieng Viet, English, Francais, Japanese, Chinese cap nhat tuc thi tren toan ung dung.
-            - Da tien te: Ho tro VND, USD, EUR, JPY, GBP, KRW, SGD.
-            - Du lieu mac dinh: Lam sach hoan toan du lieu mau, khoi tao co so du lieu trang thai rong.
-            - Cap nhat tuc thi: Dong bo hoa du lieu tuc thoi giua cac man hinh ma khong can thao tac lam moi.
-            - So giao dich: Vuot phai de sua giao dich, vuot trai de xoa giao dich.
-            - Quet hoa don: Ho tro phan loai hoa don mua hang (Chi tieu) hoac bill khach chuyen khoan (Thu nhap).
-            - Danh muc: Phan tach ro rang danh muc Thu va Chi, ho tro nguoi dung tao them danh muc ca nhan hoa.
-            - Tinh gon thao tac: Toi gian con duy nhat 1 nut them cho moi man hinh.
-            - Phan tich: Tinh toan bien dong tuan trong thang chinh xac theo lich thoi gian thuc; hien thi trung binh theo ngay, tuan hoac thang.
+            - Quan ly Ngan sach & Canh bao han muc: Thiet lap ngan sach thang de theo doi tien do chi tieu; thanh tien do chuyen mau thong minh (Xanh -> Vang -> Do) va canh bao tuc thi khi sap cham hoac vuot tran ngan sach.
+            - Bieu do tron (Donut Chart): Bieu do phan bo chi tieu theo danh muc truc quan voi tuong tac cham chon lat de xem ti le phan tram va so tien.
+            - So sanh bien dong theo ky: Phan tich chenh lech chi tieu so voi ky truoc (Tuan, Thang, Nam) voi ty le phan tram tang/giam va so tien tiet kiem duoc.
+            - Cai dat giao dien: Bo cuc luoi chu de 4 mau 1 hang can deu tu trai; gop tien te va ngon ngu vao Dropdown giup tiet kiem hon 450px chieu doc man hinh.
+            - Da ngon ngu mo rong: Bo sung 4 ngon ngu moi (Korean, Spanish, German, Russian), nang tong so ngon ngu ho tro len 9 ngon ngu quoc te.
+            - Canh bao han muc khi ghi chep: Tich hop thong bao canh bao tuc thi khi giao dich ghi chep vuot 80% hoac vuot 100% ngan sach thang.
           draft: false
           prerelease: false
           files: release_apks/*.apk

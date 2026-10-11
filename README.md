@@ -25,15 +25,21 @@ Thiết kế giao diện tuân theo tiêu chuẩn Taste-Skill (Anti-AI Slop): B�
   $$\text{Safe-to-Spend} = \frac{\text{Tổng thu} - \text{Gói định kỳ} - \text{Quỹ tiết kiệm mục tiêu} - \text{Đã chi tiêu}}{\text{Số ngày còn lại trong tháng}}$$
 - Cung cấp hạn mức chi tiêu an toàn theo ngày để đảm bảo người dùng luôn đạt được mục tiêu tài chính cuối tháng.
 
-### 4. Báo cáo và biểu đồ phân tích
+### 4. Quản lý Ngân sách & Cảnh báo hạn mức (Budget Management)
+- Thiết lập ngân sách chi tiêu hàng tháng trực tiếp từ bảng điều khiển chính hoặc cài đặt.
+- Thanh tiến độ chuyển màu thông minh: An toàn (Xanh) -> Cảnh báo chạm mức 70% (Vàng) -> Vượt ngân sách (Đỏ).
+- Cảnh báo tức thì khi ghi chép giao dịch chi tiêu vượt ngưỡng 80% hoặc vượt 100% hạn mức ngân sách tháng.
+
+### 5. Báo cáo, biểu đồ tròn và so sánh biến động
+- **Biểu đồ tròn (Interactive Donut Chart):** Biểu đồ phân bổ tỷ lệ phần trăm theo danh mục với khả năng chạm chọn lát để xem chi tiết danh mục, số tiền và tỷ lệ phần trăm.
+- **So sánh biến động theo kỳ (Period-over-Period Comparison):** Phân tích so sánh chi tiêu với kỳ trước (tuần, tháng, năm) thể hiện rõ mức tiết kiệm hoặc gia tăng chi tiêu kèm tỷ lệ %.
 - **Biểu đồ cột trực quan:** Theo dõi biến động chi tiêu theo tuần, theo các tuần trong tháng (chuẩn theo lịch thực tế), hoặc 12 tháng trong năm.
 - **Thống kê trung bình linh hoạt:** Tự động tính toán mức chi tiêu trung bình theo ngày, theo tuần hoặc theo tháng tương ứng với mốc thời gian đang xem.
-- **Phân bổ chi tiêu theo danh mục:** Biểu đồ thanh tỷ lệ phần trăm theo từng nhóm chi tiêu.
 
-### 5. Cài đặt và tùy biến cá nhân
-- **Màu nền giao diện:** Hỗ trợ 8 bảng màu tối: Zinc, OLED, Slate, Charcoal, Forest, Obsidian, Crimson, Arctic. Hiển thị dưới dạng vòng tròn màu trực quan.
-- **Đa tiền tệ:** Hỗ trợ VND (₫), USD ($), EUR (€), JPY (¥), GBP (£), KRW (₩), SGD (S$).
-- **Đa ngôn ngữ:** Hỗ trợ Tiếng Việt, English, Français, 日本語, 简体中文. Thay đổi ngôn ngữ có hiệu lực ngay lập tức trên toàn bộ ứng dụng.
+### 6. Cài đặt và tùy biến cá nhân
+- **Màu nền giao diện:** Hỗ trợ 8 bảng màu tối (Zinc, OLED, Slate, Charcoal, Forest, Obsidian, Crimson, Arctic) hiển thị dạng lưới 4 màu 1 hàng căn đều từ trái.
+- **Đa tiền tệ:** Hỗ trợ VND (₫), USD ($), EUR (€), JPY (¥), GBP (£), KRW (₩), SGD (S$) dạng Dropdown gọn gàng.
+- **Đa ngôn ngữ (9 ngôn ngữ):** Hỗ trợ Tiếng Việt, English, Français, 日本語, 简体中文, 한국어, Español, Deutsch, Русский dạng Dropdown. Thay đổi ngôn ngữ có hiệu lực tức thì trên toàn bộ ứng dụng.
 - **Quản lý dữ liệu:** Lưu trữ cục bộ với SQLite, hỗ trợ xóa sạch dữ liệu an toàn.
 
 ---
@@ -57,7 +63,7 @@ Dự án tích hợp GitHub Actions workflow tự động biên dịch và phát
 
 Cách kích hoạt phát hành bản mới:
 ```bash
-git tag v1.1.4
-git push origin v1.1.4
+git tag v1.1.5
+git push origin v1.1.5
 ```
 Workflow sẽ tự động chạy kiểm thử, biên dịch APK và đính kèm file tải trực tiếp trong mục Releases trên GitHub.

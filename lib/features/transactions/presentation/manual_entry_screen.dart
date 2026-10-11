@@ -175,8 +175,28 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
       await DatabaseHelper.instance.insertTransaction(tx);
     }
 
+    final monthlyBudget = SettingsService.instance.monthlyBudget;
+    String? warningMsg;
+    if (_type == TransactionType.expense && monthlyBudget > 0) {
+      final currentExpense = await DatabaseHelper.instance.getCurrentMonthExpense();
+      if (currentExpense > monthlyBudget) {
+        warningMsg = tr('budget_exceeded_snack');
+      } else if (currentExpense >= monthlyBudget * 0.8) {
+        warningMsg = tr('budget_warning_snack');
+      }
+    }
+
     if (mounted) {
       HapticFeedback.mediumImpact();
+      if (warningMsg != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(warningMsg),
+            backgroundColor: AppColors.expense,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
       Navigator.of(context).pop(true);
     }
   }

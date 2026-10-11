@@ -8,7 +8,11 @@ enum AppLanguage {
   en('en', 'English', 'EN'),
   fr('fr', 'Français', 'FR'),
   ja('ja', '日本語', 'JA'),
-  zh('zh', '简体中文', 'ZH');
+  zh('zh', '简体中文', 'ZH'),
+  ko('ko', '한국어', 'KO'),
+  es('es', 'Español', 'ES'),
+  de('de', 'Deutsch', 'DE'),
+  ru('ru', 'Русский', 'RU');
 
   final String code;
   final String label;
@@ -88,11 +92,13 @@ class SettingsService extends ChangeNotifier {
   AppLanguage _language = AppLanguage.vi;
   AppCurrency _currency = AppCurrency.vnd;
   AppThemeBackground _themeBackground = AppThemeBackground.zinc;
+  double _monthlyBudget = 0.0;
   bool _isInitialized = false;
 
   AppLanguage get language => _language;
   AppCurrency get currency => _currency;
   AppThemeBackground get themeBackground => _themeBackground;
+  double get monthlyBudget => _monthlyBudget;
   bool get isInitialized => _isInitialized;
 
   Future<void> init() async {
@@ -100,10 +106,12 @@ class SettingsService extends ChangeNotifier {
       final langKey = await DatabaseHelper.instance.getSetting('app_language', defaultValue: 'vi');
       final currKey = await DatabaseHelper.instance.getSetting('app_currency', defaultValue: 'VND');
       final bgKey = await DatabaseHelper.instance.getSetting('app_theme_bg', defaultValue: 'zinc');
+      final budgetStr = await DatabaseHelper.instance.getSetting('monthly_budget', defaultValue: '0.0');
 
       _language = AppLanguage.fromCode(langKey);
       _currency = AppCurrency.fromCode(currKey);
       _themeBackground = AppThemeBackground.fromKey(bgKey);
+      _monthlyBudget = double.tryParse(budgetStr ?? '0.0') ?? 0.0;
       _isInitialized = true;
       notifyListeners();
     } catch (_) {
@@ -130,6 +138,12 @@ class SettingsService extends ChangeNotifier {
     _themeBackground = bg;
     notifyListeners();
     await DatabaseHelper.instance.setSetting('app_theme_bg', bg.keyName);
+  }
+
+  Future<void> setMonthlyBudget(double amount) async {
+    _monthlyBudget = amount;
+    notifyListeners();
+    await DatabaseHelper.instance.setSetting('monthly_budget', amount.toString());
   }
 
   String tr(String key, [Map<String, String>? params]) {
