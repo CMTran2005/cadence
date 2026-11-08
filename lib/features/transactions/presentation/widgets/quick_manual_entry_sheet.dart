@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/categories.dart';
 import '../../../../core/database/database_helper.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../models/transaction_item.dart';
 
