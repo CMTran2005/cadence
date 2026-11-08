@@ -459,10 +459,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.12) : currentTheme.surfaceElevated,
+          color: isSelected ? activeColor.withValues(alpha: 0.12) : currentTheme.surfaceElevated,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? activeColor.withOpacity(0.4) : currentTheme.border,
+            color: isSelected ? activeColor.withValues(alpha: 0.4) : currentTheme.border,
             width: 1,
           ),
         ),

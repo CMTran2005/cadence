@@ -135,11 +135,11 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                         decoration: BoxDecoration(
                           color: isExpense ? AppColors.expenseSubtle : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
-                          border: isExpense ? Border.all(color: AppColors.expense.withOpacity(0.4)) : null,
+                          border: isExpense ? Border.all(color: AppColors.expense.withValues(alpha: 0.4)) : null,
                         ),
                         child: Center(
                           child: Text(
-                            'Chi tiêu',
+                            tr('expense'),
                             style: TextStyle(
                               color: isExpense ? AppColors.expense : AppColors.textSecondary,
                               fontWeight: isExpense ? FontWeight.w600 : FontWeight.w400,
@@ -163,11 +163,11 @@ class _QuickManualEntrySheetState extends State<QuickManualEntrySheet> {
                         decoration: BoxDecoration(
                           color: !isExpense ? AppColors.incomeSubtle : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
-                          border: !isExpense ? Border.all(color: AppColors.income.withOpacity(0.4)) : null,
+                          border: !isExpense ? Border.all(color: AppColors.income.withValues(alpha: 0.4)) : null,
                         ),
                         child: Center(
                           child: Text(
-                            'Thu nhập',
+                            tr('income'),
                             style: TextStyle(
                               color: !isExpense ? AppColors.income : AppColors.textSecondary,
                               fontWeight: !isExpense ? FontWeight.w600 : FontWeight.w400,

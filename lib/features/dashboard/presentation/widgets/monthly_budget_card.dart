@@ -77,11 +77,11 @@ class MonthlyBudgetCard extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: [1000000, 2000000, 5000000, 10000000, 20000000].map((amt) {
+                      children: settings.quickBudgetIncrements.map((amt) {
                         return InkWell(
                           onTap: () {
                             HapticFeedback.selectionClick();
-                            controller.text = amt.toString();
+                            controller.text = amt.toInt().toString();
                             setDialogState(() {});
                           },
                           borderRadius: BorderRadius.circular(8),

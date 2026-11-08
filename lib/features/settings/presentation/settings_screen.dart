@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -291,7 +292,7 @@ class SettingsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoRow(tr('version'), '1.1.5 (Clean & Optimized)'),
+                    _buildInfoRow(tr('version'), '1.2.0 (Clean & Optimized)'),
                     const Divider(height: 24),
                     InkWell(
                       onTap: () => _editBudgetDialog(context),
@@ -329,6 +330,20 @@ class SettingsScreen extends StatelessWidget {
                     const Divider(height: 24),
                     _buildInfoRow(tr('database_type'), tr('database_value')),
                     const Divider(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _exportCsv(context),
+                        icon: const Icon(Icons.file_download_outlined, size: 17, color: AppColors.income),
+                        label: Text(tr('export_csv'), style: const TextStyle(color: AppColors.income, fontSize: 13, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.income.withValues(alpha: 0.4)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -387,6 +402,21 @@ class SettingsScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _exportCsv(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final csvContent = await DatabaseHelper.instance.exportTransactionsToCsv();
+    await Clipboard.setData(ClipboardData(text: csvContent));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('export_success')),
+          backgroundColor: AppColors.income,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _confirmResetData(BuildContext context) {

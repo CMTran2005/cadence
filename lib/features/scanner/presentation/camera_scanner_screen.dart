@@ -222,7 +222,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                   height: MediaQuery.of(context).size.height * 0.55,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
                   ),
                   child: Stack(
                     children: [
@@ -234,7 +234,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
+                              color: Colors.black.withValues(alpha: 0.6),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -262,14 +262,14 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                 IconButton.filledTonal(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded, color: Colors.white),
-                  style: IconButton.styleFrom(backgroundColor: Colors.black.withOpacity(0.5)),
+                  style: IconButton.styleFrom(backgroundColor: Colors.black.withValues(alpha: 0.5)),
                 ),
                 TextButton.icon(
                   onPressed: _pickSampleReceipt,
                   icon: const Icon(Icons.receipt_long, size: 16, color: AppColors.warning),
                   label: Text(tr('sample_bill'), style: const TextStyle(color: Colors.white, fontSize: 13)),
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.black.withOpacity(0.6),
+                    backgroundColor: Colors.black.withValues(alpha: 0.6),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
@@ -279,7 +279,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
                     _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
                     color: _isFlashOn ? AppColors.warning : Colors.white,
                   ),
-                  style: IconButton.styleFrom(backgroundColor: Colors.black.withOpacity(0.5)),
+                  style: IconButton.styleFrom(backgroundColor: Colors.black.withValues(alpha: 0.5)),
                 ),
               ],
             ),
@@ -341,7 +341,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with WidgetsB
 
           if (_isProcessing)
             Container(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               child: const Center(
                 child: CircularProgressIndicator(color: Colors.white),
               ),

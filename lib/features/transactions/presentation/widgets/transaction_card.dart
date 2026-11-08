@@ -32,9 +32,9 @@ class TransactionCard extends StatelessWidget {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
         decoration: BoxDecoration(
-          color: AppColors.income.withOpacity(0.18),
+          color: AppColors.income.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.income.withOpacity(0.4)),
+          border: Border.all(color: AppColors.income.withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
@@ -58,7 +58,7 @@ class TransactionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.expenseSubtle,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.expense.withOpacity(0.4)),
+          border: Border.all(color: AppColors.expense.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -105,7 +105,7 @@ class TransactionCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: item.category.color.withOpacity(0.12),
+                  color: item.category.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -175,7 +175,7 @@ class TransactionCard extends StatelessWidget {
               Text(
                 SettingsService.instance.formatSignedCurrency(item.amount, isIncome: item.isIncome),
                 style: TextStyle(
-                  color: item.isIncome ? AppColors.income : AppColors.textPrimary,
+                  color: item.isIncome ? AppColors.income : AppColors.expense,
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,

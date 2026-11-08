@@ -63,7 +63,7 @@ Dự án tích hợp GitHub Actions workflow tự động biên dịch và phát
 
 Cách kích hoạt phát hành bản mới:
 ```bash
-git tag v1.1.5
-git push origin v1.1.5
+git tag v1.2.0
+git push origin v1.2.0
 ```
 Workflow sẽ tự động chạy kiểm thử, biên dịch APK và đính kèm file tải trực tiếp trong mục Releases trên GitHub.

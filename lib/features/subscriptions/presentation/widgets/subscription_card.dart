@@ -52,9 +52,9 @@ class SubscriptionCard extends StatelessWidget {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
         decoration: BoxDecoration(
-          color: AppColors.income.withOpacity(0.18),
+          color: AppColors.income.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.income.withOpacity(0.4)),
+          border: Border.all(color: AppColors.income.withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
@@ -77,7 +77,7 @@ class SubscriptionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.expenseSubtle,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.expense.withOpacity(0.4)),
+          border: Border.all(color: AppColors.expense.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -105,39 +105,42 @@ class SubscriptionCard extends StatelessWidget {
           return true;
         }
       },
-      child: InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: currentTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDueSoon ? AppColors.warning.withOpacity(0.3) : currentTheme.border,
-              width: 1,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: sub.isActive ? 1.0 : 0.55,
+        child: InkWell(
+          onTap: onEdit,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: currentTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDueSoon ? AppColors.warning.withValues(alpha: 0.3) : currentTheme.border,
+                width: 1,
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // Category Icon
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: sub.category.color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    // Category Icon
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: sub.category.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(sub.category.icon, color: sub.category.color, size: 22),
                     ),
-                    child: Icon(sub.category.icon, color: sub.category.color, size: 22),
-                  ),
-                  const SizedBox(width: 14),
+                    const SizedBox(width: 14),
 
-                  // Name and Billing Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Name and Billing Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           sub.name,
@@ -158,7 +161,7 @@ class SubscriptionCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: badgeBg,
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: badgeColor.withOpacity(0.2)),
+                                border: Border.all(color: badgeColor.withValues(alpha: 0.2)),
                               ),
                               child: Text(
                                 badgeText,
@@ -224,7 +227,7 @@ class SubscriptionCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        sub.isActive ? 'Đang hoạt động' : 'Tạm dừng',
+                        sub.isActive ? tr('active') : tr('paused'),
                         style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                       ),
                     ],
@@ -237,7 +240,7 @@ class SubscriptionCard extends StatelessWidget {
                     label: Text(tr('mark_paid')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.income,
-                      side: BorderSide(color: AppColors.income.withOpacity(0.4)),
+                      side: BorderSide(color: AppColors.income.withValues(alpha: 0.4)),
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -249,6 +252,7 @@ class SubscriptionCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -58,6 +58,11 @@ class UpcomingBillsStrip extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final sub = upcomingSubs[index];
+              final isOverdue = sub.daysUntilDue < 0;
+              final borderColor = isOverdue
+                  ? AppColors.expense.withValues(alpha: 0.5)
+                  : (sub.isDueSoon ? AppColors.warning.withValues(alpha: 0.4) : currentTheme.border);
+
               return Container(
                 width: 170,
                 padding: const EdgeInsets.all(12),
@@ -65,8 +70,8 @@ class UpcomingBillsStrip extends StatelessWidget {
                   color: currentTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: sub.isDueSoon ? AppColors.warning.withOpacity(0.4) : currentTheme.border,
-                    width: 1,
+                    color: borderColor,
+                    width: isOverdue ? 1.5 : 1,
                   ),
                 ),
                 child: Column(

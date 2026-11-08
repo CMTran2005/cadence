@@ -163,7 +163,7 @@ class _ReceiptReviewDialogState extends State<ReceiptReviewDialog> {
                   decoration: BoxDecoration(
                     color: AppColors.incomeSubtle,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.income.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.income.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -203,9 +203,9 @@ class _ReceiptReviewDialogState extends State<ReceiptReviewDialog> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(
-                          color: isExpense ? AppColors.expense.withOpacity(0.15) : Colors.transparent,
+                          color: isExpense ? AppColors.expense.withValues(alpha: 0.15) : Colors.transparent,
                           borderRadius: BorderRadius.circular(9),
-                          border: isExpense ? Border.all(color: AppColors.expense.withOpacity(0.4)) : null,
+                          border: isExpense ? Border.all(color: AppColors.expense.withValues(alpha: 0.4)) : null,
                         ),
                         child: Center(
                           child: Text(
@@ -228,9 +228,9 @@ class _ReceiptReviewDialogState extends State<ReceiptReviewDialog> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         decoration: BoxDecoration(
-                          color: !isExpense ? AppColors.income.withOpacity(0.15) : Colors.transparent,
+                          color: !isExpense ? AppColors.income.withValues(alpha: 0.15) : Colors.transparent,
                           borderRadius: BorderRadius.circular(9),
-                          border: !isExpense ? Border.all(color: AppColors.income.withOpacity(0.4)) : null,
+                          border: !isExpense ? Border.all(color: AppColors.income.withValues(alpha: 0.4)) : null,
                         ),
                         child: Center(
                           child: Text(

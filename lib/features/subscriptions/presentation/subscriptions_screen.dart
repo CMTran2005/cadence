@@ -201,6 +201,20 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                             tr('add_subscription_prompt'),
                             style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
                           ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              await AddSubscriptionSheet.show(context);
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: Text(tr('add_subscription')),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.textPrimary,
+                              foregroundColor: AppColors.background,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
                         ],
                       ),
                     )

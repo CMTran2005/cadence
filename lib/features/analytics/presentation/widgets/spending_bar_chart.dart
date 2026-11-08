@@ -135,6 +135,7 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
+                      HapticFeedback.selectionClick();
                       setState(() {
                         _selectedIndex = (_selectedIndex == index) ? null : index;
                       });
@@ -158,7 +159,7 @@ class _SpendingBarChartState extends State<SpendingBarChart> {
                                       ? AppColors.textPrimary
                                       : isPeak
                                           ? AppColors.expense
-                                          : (pt.value > 0 ? AppColors.accent.withOpacity(0.75) : currentTheme.surfaceElevated),
+                                          : (pt.value > 0 ? AppColors.accent.withValues(alpha: 0.75) : currentTheme.surfaceElevated),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isSelected

@@ -146,6 +146,36 @@ class SettingsService extends ChangeNotifier {
     await DatabaseHelper.instance.setSetting('monthly_budget', amount.toString());
   }
 
+  List<double> get quickAddAmounts {
+    switch (_currency) {
+      case AppCurrency.vnd:
+        return const [20000, 50000, 100000, 200000, 500000];
+      case AppCurrency.usd:
+      case AppCurrency.eur:
+      case AppCurrency.gbp:
+      case AppCurrency.sgd:
+        return const [5, 10, 20, 50, 100];
+      case AppCurrency.jpy:
+      case AppCurrency.krw:
+        return const [500, 1000, 3000, 5000, 10000];
+    }
+  }
+
+  List<double> get quickBudgetIncrements {
+    switch (_currency) {
+      case AppCurrency.vnd:
+        return const [1000000, 2000000, 5000000, 10000000, 20000000];
+      case AppCurrency.usd:
+      case AppCurrency.eur:
+      case AppCurrency.gbp:
+      case AppCurrency.sgd:
+        return const [100, 200, 500, 1000, 2000];
+      case AppCurrency.jpy:
+      case AppCurrency.krw:
+        return const [10000, 20000, 50000, 100000, 200000];
+    }
+  }
+
   String tr(String key, [Map<String, String>? params]) {
     return AppLocalizations.get(key, _language.code, params);
   }

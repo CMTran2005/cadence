@@ -88,7 +88,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           surfaceTintColor: Colors.transparent,
           height: 64,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (index) => setState(() => _currentIndex = index),
+          onDestinationSelected: (index) {
+            HapticFeedback.selectionClick();
+            setState(() => _currentIndex = index);
+          },
           destinations: [
             NavigationDestination(
               icon: const Icon(Icons.home_outlined, size: 22, color: AppColors.textTertiary),

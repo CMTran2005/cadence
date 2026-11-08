@@ -25,13 +25,20 @@ class SafeToSpendHero extends StatelessWidget {
     final daysRemaining = (daysInMonth - now.day + 1).clamp(1, 31);
     final currentTheme = SettingsService.instance.themeBackground;
 
+    final isDeficit = safeToSpendDaily < 0;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: currentTheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: currentTheme.border, width: 1),
+        border: Border.all(
+          color: isDeficit
+              ? AppColors.expense.withValues(alpha: 0.4)
+              : currentTheme.border,
+          width: isDeficit ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,7 +49,11 @@ class SafeToSpendHero extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.shield_outlined, size: 16, color: AppColors.income),
+                  Icon(
+                    Icons.shield_outlined,
+                    size: 16,
+                    color: isDeficit ? AppColors.expense : AppColors.income,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     tr('safe_to_spend_today'),
@@ -77,12 +88,12 @@ class SafeToSpendHero extends StatelessWidget {
           // Main Big Metric (Safe-to-Spend per day)
           Text(
             SettingsService.instance.formatCurrency(safeToSpendDaily),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 34,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: safeToSpendDaily < 0 ? AppColors.expense : AppColors.income,
               letterSpacing: -1.2,
-              fontFeatures: [FontFeature.tabularFigures()],
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: 4),

@@ -226,11 +226,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   if (_recentTx.isEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 36),
+                      padding: const EdgeInsets.symmetric(vertical: 40),
                       alignment: Alignment.center,
-                      child: Text(
-                        tr('no_transactions'),
-                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 36,
+                            color: AppColors.textTertiary.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            tr('no_transactions'),
+                            style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tr('scan_or_enter'),
+                            style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                          ),
+                          const SizedBox(height: 14),
+                          OutlinedButton.icon(
+                            onPressed: _openQuickManualEntry,
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: Text(
+                              tr('add_first_transaction'),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.textPrimary,
+                              side: BorderSide(color: currentTheme.border),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   else

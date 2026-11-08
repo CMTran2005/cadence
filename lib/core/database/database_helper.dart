@@ -526,6 +526,25 @@ class DatabaseHelper {
     return list;
   }
 
+  // ================= EXPORT =================
+
+  Future<String> exportTransactionsToCsv() async {
+    final txs = await getAllTransactions();
+    final buffer = StringBuffer();
+    buffer.writeln('ID,Date,Title,Type,Category,Amount,Source,Notes');
+
+    for (final tx in txs) {
+      final dateStr = tx.transactionDate.toIso8601String();
+      final titleSafe = '"${tx.title.replaceAll('"', '""')}"';
+      final notesSafe = '"${(tx.notes ?? '').replaceAll('"', '""')}"';
+      final typeStr = tx.isIncome ? 'INCOME' : 'EXPENSE';
+      final catStr = tx.category.name;
+      buffer.writeln('${tx.id},$dateStr,$titleSafe,$typeStr,$catStr,${tx.amount},${tx.source},$notesSafe');
+    }
+
+    return buffer.toString();
+  }
+
   // ================= SETTINGS =================
 
   Future<String?> getSetting(String key, {String? defaultValue}) async {

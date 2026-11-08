@@ -62,7 +62,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
 
   List<CategoryItemData> _customCategories = [];
 
-  final List<double> _quickAddAmounts = [20000, 50000, 100000, 200000, 500000];
+  List<double> get _quickAddAmounts => SettingsService.instance.quickAddAmounts;
 
   @override
   void initState() {
@@ -277,7 +277,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.income.withOpacity(0.2) : AppColors.surfaceElevated,
+                            color: isSelected ? AppColors.income.withValues(alpha: 0.2) : AppColors.surfaceElevated,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: isSelected ? AppColors.income : AppColors.border),
                           ),
@@ -410,10 +410,10 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isExpense ? AppColors.expense.withOpacity(0.15) : Colors.transparent,
+                                color: isExpense ? AppColors.expense.withValues(alpha: 0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
                                 border: isExpense
-                                    ? Border.all(color: AppColors.expense.withOpacity(0.5))
+                                    ? Border.all(color: AppColors.expense.withValues(alpha: 0.5))
                                     : null,
                               ),
                               child: Row(
@@ -447,10 +447,10 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: !isExpense ? AppColors.income.withOpacity(0.15) : Colors.transparent,
+                                color: !isExpense ? AppColors.income.withValues(alpha: 0.15) : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
                                 border: !isExpense
-                                    ? Border.all(color: AppColors.income.withOpacity(0.5))
+                                    ? Border.all(color: AppColors.income.withValues(alpha: 0.5))
                                     : null,
                               ),
                               child: Row(
@@ -522,7 +522,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
                                   hintStyle: TextStyle(
                                     fontSize: 36,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.textTertiary.withOpacity(0.3),
+                                    color: AppColors.textTertiary.withValues(alpha: 0.3),
                                   ),
                                   border: InputBorder.none,
                                   enabledBorder: InputBorder.none,
