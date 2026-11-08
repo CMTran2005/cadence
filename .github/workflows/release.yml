@@ -30,6 +30,12 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+
       - name: Configure Keystore for Release Signing
         run: |
           mkdir -p ~/.android
